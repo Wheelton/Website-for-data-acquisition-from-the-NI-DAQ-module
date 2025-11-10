@@ -318,7 +318,7 @@ async def websocket_daq(websocket: WebSocket):
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     """Serve the web dashboard"""
-    with open("dashboard.html", "r") as f:
+    with open("dashboard.html", "r", encoding="utf-8") as f:
         return f.read()
 
 
