@@ -9,7 +9,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔌</text></svg>">
     
     <!-- External CSS -->
-    <link rel="stylesheet" href="/static/css/dashboard.css?v=12">
+    <link rel="stylesheet" href="/static/css/dashboard.css?v=17">
 </head>
 <body>
     <div class="container">
@@ -189,7 +189,64 @@
                 </div>
             </div>
         </div>
+
+        <!-- Results Section (shown during/after measurement) -->
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <h2>📊 Measurement Results</h2>
+            <p class="results-subtitle">Real-time data acquisition from selected channels</p>
+            
+            <div class="results-controls">
+                <button class="result-btn btn-save" id="btnSaveResults" onclick="saveResults()">
+                    💾 Save Results to File
+                </button>
+                <button class="result-btn btn-clear" id="btnClearResults" onclick="clearResults()">
+                    🗑️ Clear Results
+                </button>
+            </div>
+            
+            <div class="charts-grid" id="chartsGrid">
+                <!-- Charts will be dynamically inserted here based on circuit type -->
+            </div>
+        </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <img src="/static/logopg.svg" alt="Gdańsk University of Technology Logo" class="pg-logo">
+            </div>
+            
+            <div class="footer-info">
+                <div class="footer-section">
+                    <h4>NI DAQ Control Dashboard</h4>
+                    <p>Website for Data Acquisition from NI DAQ Module</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Author</h4>
+                    <p><strong>Illia Shcheboruk</strong></p>
+                    <p>Gdańsk University of Technology</p>
+                    <p>Faculty of Electrical and Control Engineering</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Project Information</h4>
+                    <p>Release Date: <strong>TODO</strong></p>
+                    <p>Version: 1.0.0</p>
+                    <p>Engineering Thesis Project</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2024-2025 Illia Shcheboruk. All rights reserved.</p>
+            <p>Developed as part of Bachelor's Engineering Thesis</p>
+        </div>
+    </footer>
+    
+    <!-- External JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <!-- Dashboard JavaScript -->
     <script src="/static/js/dashboard.js"></script>

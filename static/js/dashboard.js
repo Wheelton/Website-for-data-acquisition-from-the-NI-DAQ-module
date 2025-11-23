@@ -7,12 +7,34 @@ let selectedCircuit = null;
 let isExtendedView = false;
 let isMeasuring = false;
 let measurementTimer = null;
+let charts = {};
+let measurementData = {};
 
 // Persistent measurement values (remember across circuit switches)
 let measurementValues = {
     samples: 500,
     sampleRate: 100,
     measurementTime: 5
+};
+
+// Channel mappings for each circuit type
+const channelMappings = {
+    'rl': [
+        { id: 'ch1', name: 'CH1 - Voltage across Inductor (Ls)', color: '#3b82f6' },
+        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R)', color: '#ef4444' },
+        { id: 'ch4', name: 'CH4 - Current Measurement', color: '#10b981' }
+    ],
+    'rc': [
+        { id: 'ch3', name: 'CH3 - Voltage across Capacitor (Cs)', color: '#f59e0b' },
+        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R)', color: '#ef4444' },
+        { id: 'ch4', name: 'CH4 - Current Measurement', color: '#10b981' }
+    ],
+    'rlc': [
+        { id: 'ch1', name: 'CH1 - Voltage across Inductor (Ls)', color: '#3b82f6' },
+        { id: 'ch3', name: 'CH3 - Voltage across Capacitor (Cs)', color: '#f59e0b' },
+        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R)', color: '#ef4444' },
+        { id: 'ch4', name: 'CH4 - Current Measurement', color: '#10b981' }
+    ]
 };
 
 // ============== Circuit Selection ==============
@@ -35,6 +57,9 @@ function selectCircuit(circuitType) {
         
         // Hide parameter section
         hideParameterSection();
+        
+        // Hide results section
+        hideResultsSection();
         
         // Show all cards and remove selected state
         allCards.forEach(card => {
@@ -448,6 +473,9 @@ function hideMeasurementSection() {
     if (isMeasuring) {
         stopMeasurement();
     }
+    
+    // Hide results section
+    hideResultsSection();
 }
 
 /**
@@ -494,12 +522,24 @@ function startMeasurement() {
     stopBtn.disabled = false;
     stopBtn.setAttribute('data-tooltip', 'Click to stop the ongoing measurement');
     
+    // Show results section and initialize charts
+    showResultsSection();
+    initializeCharts();
+    
     console.log('Starting measurement...', {
         ...selectedParams,
         samples: measurementValues.samples,
         sampleRate: measurementValues.sampleRate,
         measurementTime: measurementValues.measurementTime
     });
+    
+    // Scroll to results section
+    setTimeout(() => {
+        const resultsSection = document.getElementById('resultsSection');
+        if (resultsSection) {
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 200);
     
     // Set automatic stop timer if measurement time is specified
     if (measurementValues.measurementTime > 0) {
@@ -511,6 +551,8 @@ function startMeasurement() {
     
     // TODO: Implement actual data acquisition logic here
     // This will be connected to your backend API endpoints
+    // For now, simulate some data
+    simulateMeasurementData();
 }
 
 /**
@@ -536,5 +578,258 @@ function stopMeasurement() {
     validateParameters();
     
     // TODO: Implement actual measurement stop logic here
+}
+
+// ============== Results Section ==============
+
+/**
+ * Show results section
+ */
+function showResultsSection() {
+    const resultsSection = document.getElementById('resultsSection');
+    resultsSection.style.display = 'block';
+}
+
+/**
+ * Hide results section
+ */
+function hideResultsSection() {
+    const resultsSection = document.getElementById('resultsSection');
+    resultsSection.style.display = 'none';
+}
+
+/**
+ * Initialize charts based on selected circuit type
+ */
+function initializeCharts() {
+    const chartsGrid = document.getElementById('chartsGrid');
+    chartsGrid.innerHTML = ''; // Clear existing charts
+    charts = {}; // Reset charts object
+    measurementData = {}; // Reset measurement data
+    
+    if (!selectedCircuit || !channelMappings[selectedCircuit]) {
+        return;
+    }
+    
+    const channels = channelMappings[selectedCircuit];
+    
+    channels.forEach(channel => {
+        // Create chart card
+        const chartCard = document.createElement('div');
+        chartCard.className = 'chart-card';
+        chartCard.id = `card-${channel.id}`;
+        
+        // Create chart title
+        const chartTitle = document.createElement('h3');
+        chartTitle.textContent = channel.name;
+        
+        // Create chart container
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'chart-container';
+        
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        canvas.id = `chart-${channel.id}`;
+        
+        // Assemble elements
+        chartContainer.appendChild(canvas);
+        chartCard.appendChild(chartTitle);
+        chartCard.appendChild(chartContainer);
+        chartsGrid.appendChild(chartCard);
+        
+        // Initialize Chart.js chart
+        const ctx = canvas.getContext('2d');
+        charts[channel.id] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: channel.name,
+                    data: [],
+                    borderColor: channel.color,
+                    backgroundColor: channel.color + '20',
+                    borderWidth: 2,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time (samples)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Voltage (V)'
+                        },
+                        beginAtZero: false
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: false
+                    }
+                }
+            }
+        });
+        
+        // Initialize empty data array
+        measurementData[channel.id] = [];
+    });
+}
+
+/**
+ * Update chart with new data
+ * @param {string} channelId - Channel ID (e.g., 'ch1')
+ * @param {Array<number>} data - Array of voltage values
+ */
+function updateChart(channelId, data) {
+    const chart = charts[channelId];
+    if (!chart) return;
+    
+    chart.data.labels = data.map((_, i) => i);
+    chart.data.datasets[0].data = data;
+    chart.update();
+    
+    // Store data
+    measurementData[channelId] = data;
+}
+
+/**
+ * Simulate measurement data for testing
+ * TODO: Replace with actual data acquisition from backend
+ */
+function simulateMeasurementData() {
+    const samples = measurementValues.samples;
+    
+    // Generate simulated data for each active channel
+    Object.keys(charts).forEach(channelId => {
+        const data = [];
+        for (let i = 0; i < samples; i++) {
+            // Generate sinusoidal wave with some noise
+            const value = Math.sin(i * 0.1) * 2 + Math.random() * 0.5;
+            data.push(value);
+        }
+        updateChart(channelId, data);
+    });
+}
+
+/**
+ * Save results to file
+ */
+function saveResults() {
+    if (Object.keys(measurementData).length === 0) {
+        alert('No measurement data to save');
+        return;
+    }
+    
+    // Get selected parameters for metadata
+    const selectLs = document.getElementById('select-ls');
+    const selectCs = document.getElementById('select-cs');
+    const selectResistance = document.getElementById('select-resistance');
+    
+    // Get parameter text (user-friendly display)
+    const getParameterText = (selectElement) => {
+        if (!selectElement.value) return null;
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        return selectedOption ? selectedOption.text : null;
+    };
+    
+    // Build channels data with metadata
+    const channelsExport = {};
+    const activeChannels = channelMappings[selectedCircuit];
+    
+    activeChannels.forEach(channel => {
+        if (measurementData[channel.id]) {
+            channelsExport[channel.id] = {
+                channelName: channel.id.toUpperCase(),
+                description: channel.name,
+                unit: 'V', // Voltage for all channels
+                dataPoints: measurementData[channel.id].length,
+                data: measurementData[channel.id]
+            };
+        }
+    });
+    
+    // Prepare complete export data
+    const exportData = {
+        metadata: {
+            circuit: selectedCircuit.toUpperCase(),
+            circuitDescription: getCircuitDescription(selectedCircuit),
+            timestamp: new Date().toISOString(),
+            dateFormatted: new Date().toLocaleString(),
+            samplesPerChannel: measurementValues.samples,
+            sampleRate: measurementValues.sampleRate,
+            sampleRateUnit: 'Hz',
+            measurementTime: measurementValues.measurementTime,
+            measurementTimeUnit: 's'
+        },
+        parameters: {
+            inductance: getParameterText(selectLs),
+            capacitance: getParameterText(selectCs),
+            resistance: getParameterText(selectResistance)
+        },
+        channels: channelsExport
+    };
+    
+    // Convert to JSON with formatting
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    // Create download link
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `measurement_${selectedCircuit}_${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    console.log('Results saved to file');
+}
+
+/**
+ * Get circuit description
+ * @param {string} circuit - Circuit type
+ * @returns {string} Circuit description
+ */
+function getCircuitDescription(circuit) {
+    const descriptions = {
+        'rl': 'Series RL Circuit (Inductor + Resistor)',
+        'rc': 'Series RC Circuit (Capacitor + Resistor)',
+        'rlc': 'Series RLC Circuit (Inductor + Capacitor + Resistor)'
+    };
+    return descriptions[circuit] || 'Unknown Circuit';
+}
+
+/**
+ * Clear results and charts
+ */
+function clearResults() {
+    if (isMeasuring) {
+        if (!confirm('Measurement is in progress. Are you sure you want to clear results?')) {
+            return;
+        }
+    }
+    
+    // Clear all charts
+    Object.keys(charts).forEach(channelId => {
+        updateChart(channelId, []);
+    });
+    
+    measurementData = {};
+    console.log('Results cleared');
 }
 
