@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NI DAQ Control Dashboard</title>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔌 NI DAQ Control Dashboard</h1>
+            <p class="subtitle">Website for Data Acquisition from NI DAQ Module</p>
+        </div>
+
+        <!-- Circuit Schematic Section -->
+        <div class="schematic-section" id="schematicSection">
+            <div class="schematic-toggle">
+                <button class="toggle-btn" onclick="toggleSchematic()">
+                    <span id="toggleText">Hide Schema</span>
+                </button>
+            </div>
+            <h2>📐 Circuit Schematic</h2>
+            <div class="schematic-container" id="schematicContainer">
+                <img src="/static/schematic.png" alt="DAQ Circuit Schematic" id="schematicImage" 
+                     onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'800\' height=\'400\'%3E%3Crect width=\'800\' height=\'400\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'400\' y=\'200\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'20\' fill=\'%23666\'%3ESchematic image not found%3C/text%3E%3Ctext x=\'400\' y=\'230\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'14\' fill=\'%23999\'%3EPlease save your schematic as static/schematic.png%3C/text%3E%3C/svg%3E';">
+                <div class="schematic-info">
+                    <strong>ℹ️ System Components:</strong><br>
+                    • Power Supply: 230V AC / 5V+ DC<br>
+                    • Channels: CH1-CH4 (differential inputs)<br>
+                    • Relay Modules: ZS1, ZS2 (switching control)<br>
+                    • Capacitors: Cs1-Cs4 with relay switching (ZK modules)<br>
+                    • Current Measurement: ADC channels with shunt resistors<br>
+                    • Test Configuration: Multiple switching combinations for different measurement scenarios
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Control Panels -->
+        <div class="grid">
+            <!-- Device Information -->
+            <div class="card">
+                <h2>📡 Device Information</h2>
+                <div id="deviceInfo" class="status info">
+                    Loading device information...
+                </div>
+                <button class="control-btn btn-primary" onclick="loadDevices()">
+                    Refresh Devices
+                </button>
+            </div>
+
+            <!-- Relay Controls -->
+            <div class="card">
+                <h2>🔘 Relay Controls</h2>
+                <div class="relay-grid" id="relayControls">
+                    <!-- Dynamically populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Data Acquisition -->
+            <div class="card">
+                <h2>📊 Data Acquisition</h2>
+                <div class="input-group">
+                    <label>Samples per Channel:</label>
+                    <input type="number" id="samples" value="500" min="10" max="10000">
+                </div>
+                <div class="input-group">
+                    <label>Sample Rate (Hz):</label>
+                    <input type="number" id="sampleRate" value="100" min="1" max="10000">
+                </div>
+                <button class="control-btn btn-success" onclick="chargeCapacitor()">
+                    ⚡ Charge Capacitor
+                </button>
+                <button class="control-btn btn-primary" onclick="readDAQ()">
+                    📈 Read DAQ Data
+                </button>
+                <div id="daqStatus"></div>
+            </div>
+
+            <!-- WebSocket Streaming -->
+            <div class="card">
+                <h2>🌐 Real-Time Streaming</h2>
+                <div class="status info">
+                    <span class="ws-indicator disconnected" id="wsIndicator"></span>
+                    <span id="wsStatus">Disconnected</span>
+                </div>
+                <button class="control-btn btn-success" id="wsConnectBtn" onclick="connectWebSocket()">
+                    Connect WebSocket
+                </button>
+                <button class="control-btn btn-primary" id="wsStartBtn" onclick="startStreaming()" disabled>
+                    Start Streaming
+                </button>
+                <button class="control-btn btn-danger" id="wsStopBtn" onclick="stopStreaming()" disabled>
+                    Stop Streaming
+                </button>
+            </div>
+        </div>
+
+        <!-- ADC Channel Charts -->
+        <div class="grid">
+            <div class="card">
+                <h2>ADC Channel 1</h2>
+                <div class="chart-container">
+                    <canvas id="chart1"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h2>ADC Channel 2</h2>
+                <div class="chart-container">
+                    <canvas id="chart2"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h2>ADC Channel 3</h2>
+                <div class="chart-container">
+                    <canvas id="chart3"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h2>ADC Channel 4</h2>
+                <div class="chart-container">
+                    <canvas id="chart4"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Dashboard JavaScript -->
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
