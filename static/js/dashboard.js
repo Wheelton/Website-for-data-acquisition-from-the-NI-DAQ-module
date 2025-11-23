@@ -5,6 +5,15 @@
 
 let selectedCircuit = null;
 let isExtendedView = false;
+let isMeasuring = false;
+let measurementTimer = null;
+
+// Persistent measurement values (remember across circuit switches)
+let measurementValues = {
+    samples: 500,
+    sampleRate: 100,
+    measurementTime: 5
+};
 
 // ============== Circuit Selection ==============
 
@@ -95,6 +104,36 @@ function showParameterSection(circuitType) {
     
     // Show the parameter section
     paramSection.style.display = 'block';
+    
+    // Add event listeners to parameter selects for validation
+    setupParameterValidation();
+    
+    // Show measurement section and restore values
+    showMeasurementSection();
+    
+    // Scroll to parameter section after a brief delay to allow animations
+    setTimeout(() => {
+        scrollToParameterSection();
+    }, 150);
+}
+
+/**
+ * Scroll to Component Parameters section smoothly
+ */
+function scrollToParameterSection() {
+    const paramSection = document.getElementById('parameterSection');
+    if (paramSection) {
+        // Calculate the position to center the parameter section
+        const elementRect = paramSection.getBoundingClientRect();
+        const absoluteElementTop = elementRect.top + window.pageYOffset;
+        const middle = absoluteElementTop - (window.innerHeight / 2) + (elementRect.height / 2);
+        
+        // Smooth scroll to the calculated position
+        window.scrollTo({
+            top: middle,
+            behavior: 'smooth'
+        });
+    }
 }
 
 /**
@@ -104,10 +143,184 @@ function hideParameterSection() {
     const paramSection = document.getElementById('parameterSection');
     paramSection.style.display = 'none';
     
-    // Reset all select values
-    document.getElementById('select-ls').value = '';
-    document.getElementById('select-cs').value = '';
-    document.getElementById('select-resistance').value = '';
+    // Reset all select values and clear errors
+    const selectLs = document.getElementById('select-ls');
+    const selectCs = document.getElementById('select-cs');
+    const selectResistance = document.getElementById('select-resistance');
+    
+    selectLs.value = '';
+    selectCs.value = '';
+    selectResistance.value = '';
+    
+    hideError(selectLs, 'error-ls');
+    hideError(selectCs, 'error-cs');
+    hideError(selectResistance, 'error-resistance');
+    
+    // Hide measurement section
+    hideMeasurementSection();
+}
+
+/**
+ * Setup parameter validation event listeners
+ */
+function setupParameterValidation() {
+    const selectLs = document.getElementById('select-ls');
+    const selectCs = document.getElementById('select-cs');
+    const selectResistance = document.getElementById('select-resistance');
+    
+    // Remove existing listeners (to prevent duplicates)
+    selectLs.removeEventListener('change', validateParameters);
+    selectCs.removeEventListener('change', validateParameters);
+    selectResistance.removeEventListener('change', validateParameters);
+    
+    // Add new listeners
+    selectLs.addEventListener('change', validateParameters);
+    selectCs.addEventListener('change', validateParameters);
+    selectResistance.addEventListener('change', validateParameters);
+    
+    // Initial validation
+    validateParameters();
+}
+
+/**
+ * Validate that all required parameters are selected
+ */
+function validateParameters() {
+    const startBtn = document.getElementById('btnStartMeasurement');
+    if (!startBtn || !selectedCircuit) {
+        return;
+    }
+    
+    const selectLs = document.getElementById('select-ls');
+    const selectCs = document.getElementById('select-cs');
+    const selectResistance = document.getElementById('select-resistance');
+    const inputSamples = document.getElementById('input-samples');
+    const inputSampleRate = document.getElementById('input-sample-rate');
+    const inputMeasurementTime = document.getElementById('input-measurement-time');
+    
+    let allValid = true;
+    let missingParams = [];
+    
+    // Validate circuit parameters
+    if (selectedCircuit === 'rl') {
+        // RL Circuit: needs Ls and Resistance
+        if (!selectLs.value) {
+            missingParams.push('Inductance (Ls)');
+            showError(selectLs, 'error-ls');
+            allValid = false;
+        } else {
+            hideError(selectLs, 'error-ls');
+        }
+        
+        if (!selectResistance.value) {
+            missingParams.push('Resistance');
+            showError(selectResistance, 'error-resistance');
+            allValid = false;
+        } else {
+            hideError(selectResistance, 'error-resistance');
+        }
+    } else if (selectedCircuit === 'rc') {
+        // RC Circuit: needs Cs and Resistance
+        if (!selectCs.value) {
+            missingParams.push('Capacitance (Cs)');
+            showError(selectCs, 'error-cs');
+            allValid = false;
+        } else {
+            hideError(selectCs, 'error-cs');
+        }
+        
+        if (!selectResistance.value) {
+            missingParams.push('Resistance');
+            showError(selectResistance, 'error-resistance');
+            allValid = false;
+        } else {
+            hideError(selectResistance, 'error-resistance');
+        }
+    } else if (selectedCircuit === 'rlc') {
+        // RLC Circuit: needs Ls, Cs, and Resistance
+        if (!selectLs.value) {
+            missingParams.push('Inductance (Ls)');
+            showError(selectLs, 'error-ls');
+            allValid = false;
+        } else {
+            hideError(selectLs, 'error-ls');
+        }
+        
+        if (!selectCs.value) {
+            missingParams.push('Capacitance (Cs)');
+            showError(selectCs, 'error-cs');
+            allValid = false;
+        } else {
+            hideError(selectCs, 'error-cs');
+        }
+        
+        if (!selectResistance.value) {
+            missingParams.push('Resistance');
+            showError(selectResistance, 'error-resistance');
+            allValid = false;
+        } else {
+            hideError(selectResistance, 'error-resistance');
+        }
+    }
+    
+    // Validate measurement inputs
+    const samplesValue = parseFloat(inputSamples.value);
+    if (!samplesValue || samplesValue < 10 || samplesValue > 10000) {
+        missingParams.push('Samples');
+        showError(inputSamples, 'error-samples');
+        allValid = false;
+    } else {
+        hideError(inputSamples, 'error-samples');
+    }
+    
+    const sampleRateValue = parseFloat(inputSampleRate.value);
+    if (!sampleRateValue || sampleRateValue < 1 || sampleRateValue > 10000) {
+        missingParams.push('Sample Rate');
+        showError(inputSampleRate, 'error-sample-rate');
+        allValid = false;
+    } else {
+        hideError(inputSampleRate, 'error-sample-rate');
+    }
+    
+    const measurementTimeValue = parseFloat(inputMeasurementTime.value);
+    if (!measurementTimeValue || measurementTimeValue < 0.1 || measurementTimeValue > 3600) {
+        missingParams.push('Measurement Time');
+        showError(inputMeasurementTime, 'error-measurement-time');
+        allValid = false;
+    } else {
+        hideError(inputMeasurementTime, 'error-measurement-time');
+    }
+    
+    // Update button tooltip message
+    if (missingParams.length > 0) {
+        startBtn.setAttribute('data-tooltip', 'Missing or invalid: ' + missingParams.join(', '));
+    } else {
+        startBtn.setAttribute('data-tooltip', 'Ready to start measurement');
+    }
+    
+    // Enable/disable start button based on validation
+    // Also check if not currently measuring
+    startBtn.disabled = !allValid || isMeasuring;
+}
+
+/**
+ * Show error state on input/select
+ * @param {HTMLElement} element - The input or select element
+ * @param {string} tooltipId - The ID of the error tooltip (unused now, kept for compatibility)
+ */
+function showError(element, tooltipId) {
+    element.classList.add('error');
+    // Tooltip now shows on hover/focus via CSS
+}
+
+/**
+ * Hide error state on input/select
+ * @param {HTMLElement} element - The input or select element
+ * @param {string} tooltipId - The ID of the error tooltip (unused now, kept for compatibility)
+ */
+function hideError(element, tooltipId) {
+    element.classList.remove('error');
+    // Tooltip automatically hidden when error class is removed
 }
 
 // ============== UI Helper Functions ==============
@@ -169,5 +382,159 @@ function toggleSchematicView() {
             img.classList.remove('fade-in');
         }, 300);
     }, 300);
+}
+
+// ============== Measurement Control ==============
+
+/**
+ * Show measurement section and restore saved values
+ */
+function showMeasurementSection() {
+    const measurementSection = document.getElementById('measurementSection');
+    
+    // Restore saved values
+    document.getElementById('input-samples').value = measurementValues.samples;
+    document.getElementById('input-sample-rate').value = measurementValues.sampleRate;
+    document.getElementById('input-measurement-time').value = measurementValues.measurementTime;
+    
+    // Initially disable start button until parameters are filled
+    const startBtn = document.getElementById('btnStartMeasurement');
+    if (startBtn) {
+        startBtn.disabled = true;
+    }
+    
+    // Show the section
+    measurementSection.style.display = 'block';
+    
+    // Add event listeners to save values and validate on change
+    const inputSamples = document.getElementById('input-samples');
+    const inputSampleRate = document.getElementById('input-sample-rate');
+    const inputMeasurementTime = document.getElementById('input-measurement-time');
+    
+    inputSamples.removeEventListener('input', handleMeasurementInput);
+    inputSampleRate.removeEventListener('input', handleMeasurementInput);
+    inputMeasurementTime.removeEventListener('input', handleMeasurementInput);
+    
+    inputSamples.addEventListener('input', handleMeasurementInput);
+    inputSampleRate.addEventListener('input', handleMeasurementInput);
+    inputMeasurementTime.addEventListener('input', handleMeasurementInput);
+}
+
+/**
+ * Handle measurement input changes
+ */
+function handleMeasurementInput() {
+    saveMeasurementValues();
+    validateParameters();
+}
+
+/**
+ * Hide measurement section
+ */
+function hideMeasurementSection() {
+    const measurementSection = document.getElementById('measurementSection');
+    measurementSection.style.display = 'none';
+    
+    // Clear all measurement input errors
+    const inputSamples = document.getElementById('input-samples');
+    const inputSampleRate = document.getElementById('input-sample-rate');
+    const inputMeasurementTime = document.getElementById('input-measurement-time');
+    
+    hideError(inputSamples, 'error-samples');
+    hideError(inputSampleRate, 'error-sample-rate');
+    hideError(inputMeasurementTime, 'error-measurement-time');
+    
+    // Stop any running measurement
+    if (isMeasuring) {
+        stopMeasurement();
+    }
+}
+
+/**
+ * Save measurement input values for persistence
+ */
+function saveMeasurementValues() {
+    measurementValues.samples = parseFloat(document.getElementById('input-samples').value) || 500;
+    measurementValues.sampleRate = parseFloat(document.getElementById('input-sample-rate').value) || 100;
+    measurementValues.measurementTime = parseFloat(document.getElementById('input-measurement-time').value) || 5;
+}
+
+/**
+ * Start measurement
+ */
+function startMeasurement() {
+    if (!selectedCircuit) {
+        alert('Please select a circuit first');
+        return;
+    }
+    
+    // Get selected parameter values
+    const selectLs = document.getElementById('select-ls');
+    const selectCs = document.getElementById('select-cs');
+    const selectResistance = document.getElementById('select-resistance');
+    
+    const selectedParams = {
+        circuit: selectedCircuit,
+        ls: selectLs.value || null,
+        cs: selectCs.value || null,
+        resistance: selectResistance.value || null
+    };
+    
+    // Save current values
+    saveMeasurementValues();
+    
+    // Update button states
+    isMeasuring = true;
+    const startBtn = document.getElementById('btnStartMeasurement');
+    const stopBtn = document.getElementById('btnStopMeasurement');
+    
+    startBtn.disabled = true;
+    startBtn.setAttribute('data-tooltip', 'Measurement in progress...');
+    
+    stopBtn.disabled = false;
+    stopBtn.setAttribute('data-tooltip', 'Click to stop the ongoing measurement');
+    
+    console.log('Starting measurement...', {
+        ...selectedParams,
+        samples: measurementValues.samples,
+        sampleRate: measurementValues.sampleRate,
+        measurementTime: measurementValues.measurementTime
+    });
+    
+    // Set automatic stop timer if measurement time is specified
+    if (measurementValues.measurementTime > 0) {
+        measurementTimer = setTimeout(() => {
+            stopMeasurement();
+            console.log('Measurement stopped automatically after ' + measurementValues.measurementTime + ' seconds');
+        }, measurementValues.measurementTime * 1000);
+    }
+    
+    // TODO: Implement actual data acquisition logic here
+    // This will be connected to your backend API endpoints
+}
+
+/**
+ * Stop measurement
+ */
+function stopMeasurement() {
+    // Clear automatic stop timer
+    if (measurementTimer) {
+        clearTimeout(measurementTimer);
+        measurementTimer = null;
+    }
+    
+    // Update button states
+    isMeasuring = false;
+    const stopBtn = document.getElementById('btnStopMeasurement');
+    
+    stopBtn.disabled = true;
+    stopBtn.setAttribute('data-tooltip', 'No active measurement to stop');
+    
+    console.log('Measurement stopped');
+    
+    // Revalidate parameters to update start button state
+    validateParameters();
+    
+    // TODO: Implement actual measurement stop logic here
 }
 
