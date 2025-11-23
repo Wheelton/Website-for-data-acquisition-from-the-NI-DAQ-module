@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NI DAQ Control Dashboard</title>
     
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔌</text></svg>">
+    
     <!-- External CSS -->
-    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css?v=4">
 </head>
 <body>
     <div class="container">
@@ -19,13 +22,16 @@
         <!-- Circuit Schematic Section -->
         <div class="schematic-section" id="schematicSection">
             <div class="schematic-toggle">
+                <button class="toggle-btn" onclick="toggleSchematicView()">
+                    <span id="toggleViewText">📋 Extended View</span>
+                </button>
                 <button class="toggle-btn" onclick="toggleSchematic()">
                     <span id="toggleText">Hide Schema</span>
                 </button>
             </div>
             <h2>📐 Circuit Schematic</h2>
             <div class="schematic-container" id="schematicContainer">
-                <img src="/static/schematic.png" alt="DAQ Circuit Schematic" id="schematicImage" 
+                <img src="/static/schematic.png" alt="DAQ Circuit Schematic" id="schematicImage" class="schematic-img"
                      onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'800\' height=\'400\'%3E%3Crect width=\'800\' height=\'400\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'400\' y=\'200\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'20\' fill=\'%23666\'%3ESchematic image not found%3C/text%3E%3Ctext x=\'400\' y=\'230\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'14\' fill=\'%23999\'%3EPlease save your schematic as static/schematic.png%3C/text%3E%3C/svg%3E';">
                 <div class="schematic-info">
                     <strong>ℹ️ System Components:</strong><br>
@@ -39,99 +45,55 @@
             </div>
         </div>
 
-        <!-- Main Control Panels -->
-        <div class="grid">
-            <!-- Device Information -->
-            <div class="card">
-                <h2>📡 Device Information</h2>
-                <div id="deviceInfo" class="status info">
-                    Loading device information...
+        <!-- Circuit Type Selection -->
+        <div class="circuit-selection-section">
+            <h2>⚡ Select Circuit Type</h2>
+            <p class="selection-subtitle">Choose one of the circuit configurations below to proceed with your measurement</p>
+            
+            <div class="circuit-grid">
+                <!-- RL Circuit -->
+                <div class="circuit-card" id="circuit-rl" onclick="selectCircuit('rl')">
+                    <h3>RL Circuit</h3>
+                    <div class="circuit-image-container">
+                        <img src="/static/circuit-rl.png" alt="RL Circuit Diagram" class="circuit-image"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'150\' y=\'100\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23999\'%3ERL Circuit Image%3C/text%3E%3Ctext x=\'150\' y=\'120\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'12\' fill=\'%23bbb\'%3EPlace your image at static/circuit-rl.png%3C/text%3E%3C/svg%3E';">
+                        <div class="circuit-info">
+                            <p class="circuit-description">Series RL Circuit</p>
+                            <p class="circuit-elements">Inductor (Ls) + Resistor (R1s/R2r)</p>
+                        </div>
+                    </div>
                 </div>
-                <button class="control-btn btn-primary" onclick="loadDevices()">
-                    Refresh Devices
-                </button>
-            </div>
 
-            <!-- Relay Controls -->
-            <div class="card">
-                <h2>🔘 Relay Controls</h2>
-                <div class="relay-grid" id="relayControls">
-                    <!-- Dynamically populated by JavaScript -->
+                <!-- RC Circuit -->
+                <div class="circuit-card" id="circuit-rc" onclick="selectCircuit('rc')">
+                    <h3>RC Circuit</h3>
+                    <div class="circuit-image-container">
+                        <img src="/static/circuit-rc.png" alt="RC Circuit Diagram" class="circuit-image"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'150\' y=\'100\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23999\'%3ERC Circuit Image%3C/text%3E%3Ctext x=\'150\' y=\'120\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'12\' fill=\'%23bbb\'%3EPlace your image at static/circuit-rc.png%3C/text%3E%3C/svg%3E';">
+                        <div class="circuit-info">
+                            <p class="circuit-description">Series RC Circuit</p>
+                            <p class="circuit-elements">Capacitor (Cs) + Resistor (R1s/R2r)</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Data Acquisition -->
-            <div class="card">
-                <h2>📊 Data Acquisition</h2>
-                <div class="input-group">
-                    <label>Samples per Channel:</label>
-                    <input type="number" id="samples" value="500" min="10" max="10000">
-                </div>
-                <div class="input-group">
-                    <label>Sample Rate (Hz):</label>
-                    <input type="number" id="sampleRate" value="100" min="1" max="10000">
-                </div>
-                <button class="control-btn btn-success" onclick="chargeCapacitor()">
-                    ⚡ Charge Capacitor
-                </button>
-                <button class="control-btn btn-primary" onclick="readDAQ()">
-                    📈 Read DAQ Data
-                </button>
-                <div id="daqStatus"></div>
-            </div>
-
-            <!-- WebSocket Streaming -->
-            <div class="card">
-                <h2>🌐 Real-Time Streaming</h2>
-                <div class="status info">
-                    <span class="ws-indicator disconnected" id="wsIndicator"></span>
-                    <span id="wsStatus">Disconnected</span>
-                </div>
-                <button class="control-btn btn-success" id="wsConnectBtn" onclick="connectWebSocket()">
-                    Connect WebSocket
-                </button>
-                <button class="control-btn btn-primary" id="wsStartBtn" onclick="startStreaming()" disabled>
-                    Start Streaming
-                </button>
-                <button class="control-btn btn-danger" id="wsStopBtn" onclick="stopStreaming()" disabled>
-                    Stop Streaming
-                </button>
-            </div>
-        </div>
-
-        <!-- ADC Channel Charts -->
-        <div class="grid">
-            <div class="card">
-                <h2>ADC Channel 1</h2>
-                <div class="chart-container">
-                    <canvas id="chart1"></canvas>
-                </div>
-            </div>
-            <div class="card">
-                <h2>ADC Channel 2</h2>
-                <div class="chart-container">
-                    <canvas id="chart2"></canvas>
-                </div>
-            </div>
-            <div class="card">
-                <h2>ADC Channel 3</h2>
-                <div class="chart-container">
-                    <canvas id="chart3"></canvas>
-                </div>
-            </div>
-            <div class="card">
-                <h2>ADC Channel 4</h2>
-                <div class="chart-container">
-                    <canvas id="chart4"></canvas>
+                <!-- RLC Circuit -->
+                <div class="circuit-card" id="circuit-rlc" onclick="selectCircuit('rlc')">
+                    <h3>RLC Circuit</h3>
+                    <div class="circuit-image-container">
+                        <img src="/static/circuit-rlc.png" alt="RLC Circuit Diagram" class="circuit-image"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'150\' y=\'100\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23999\'%3ERLC Circuit Image%3C/text%3E%3Ctext x=\'150\' y=\'120\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'12\' fill=\'%23bbb\'%3EPlace your image at static/circuit-rlc.png%3C/text%3E%3C/svg%3E';">
+                        <div class="circuit-info">
+                            <p class="circuit-description">Series RLC Circuit</p>
+                            <p class="circuit-elements">Inductor (Ls) + Capacitor (Cs) + Resistor (R1s/R2r)</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- External JavaScript Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <!-- Dashboard JavaScript -->
-    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/dashboard.js?v=4"></script>
 </body>
 </html>
