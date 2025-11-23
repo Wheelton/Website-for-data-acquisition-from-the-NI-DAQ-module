@@ -24,6 +24,9 @@ function selectCircuit(circuitType) {
         // Remove section optimization
         section.classList.remove('has-selection');
         
+        // Hide parameter section
+        hideParameterSection();
+        
         // Show all cards and remove selected state
         allCards.forEach(card => {
             card.classList.remove('selected', 'hidden');
@@ -49,7 +52,62 @@ function selectCircuit(circuitType) {
                 card.classList.add('hidden');
             }
         });
+        
+        // Show parameter section for selected circuit
+        showParameterSection(circuitType);
     }
+}
+
+/**
+ * Show parameter selection based on circuit type
+ * @param {string} circuitType - Circuit type ('rl', 'rc', 'rlc')
+ */
+function showParameterSection(circuitType) {
+    const paramSection = document.getElementById('parameterSection');
+    const paramGrid = document.getElementById('parameterGrid');
+    const paramLs = document.getElementById('param-ls');
+    const paramCs = document.getElementById('param-cs');
+    const paramResistance = document.getElementById('param-resistance');
+    
+    // Hide all parameters first
+    paramLs.style.display = 'none';
+    paramCs.style.display = 'none';
+    paramResistance.style.display = 'none';
+    
+    // Show parameters based on circuit type
+    if (circuitType === 'rl') {
+        // RL Circuit: Inductor + Resistor (2 parameters)
+        paramLs.style.display = 'block';
+        paramResistance.style.display = 'block';
+        paramGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    } else if (circuitType === 'rc') {
+        // RC Circuit: Capacitor + Resistor (2 parameters)
+        paramCs.style.display = 'block';
+        paramResistance.style.display = 'block';
+        paramGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    } else if (circuitType === 'rlc') {
+        // RLC Circuit: Inductor + Capacitor + Resistor (3 parameters)
+        paramLs.style.display = 'block';
+        paramCs.style.display = 'block';
+        paramResistance.style.display = 'block';
+        paramGrid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+    }
+    
+    // Show the parameter section
+    paramSection.style.display = 'block';
+}
+
+/**
+ * Hide parameter selection section
+ */
+function hideParameterSection() {
+    const paramSection = document.getElementById('parameterSection');
+    paramSection.style.display = 'none';
+    
+    // Reset all select values
+    document.getElementById('select-ls').value = '';
+    document.getElementById('select-cs').value = '';
+    document.getElementById('select-resistance').value = '';
 }
 
 // ============== UI Helper Functions ==============

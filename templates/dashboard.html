@@ -9,7 +9,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔌</text></svg>">
     
     <!-- External CSS -->
-    <link rel="stylesheet" href="/static/css/dashboard.css?v=4">
+    <link rel="stylesheet" href="/static/css/dashboard.css?v=5">
 </head>
 <body>
     <div class="container">
@@ -90,10 +90,62 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Parameter Selection (shown when circuit is selected) -->
+            <div class="parameter-section" id="parameterSection" style="display: none;">
+                <h3>⚙️ Component Parameters</h3>
+                <p class="parameter-subtitle">Select parameter values for the circuit elements from the available options</p>
+                
+                <div class="parameter-grid" id="parameterGrid">
+                    <!-- Inductance Ls -->
+                    <div class="parameter-group" id="param-ls" style="display: none;">
+                        <label for="select-ls">Inductance (Ls):</label>
+                        <select id="select-ls" class="param-select">
+                            <option value="">Select inductance...</option>
+                            <option value="ls1">1/0,5 [mH/Ω]</option>
+                            <option value="ls2">10/2,5 [mH/Ω]</option>
+                            <option value="ls3">75,6/50,1 [mH/Ω]</option>
+                            <option value="ls4">~0,6/1 [H/Ω]</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Capacitance Cs -->
+                    <div class="parameter-group" id="param-cs" style="display: none;">
+                        <label for="select-cs">Capacitance (Cs):</label>
+                        <select id="select-cs" class="param-select">
+                            <option value="">Select capacitance...</option>
+                            <option value="cs1">48 [μF]</option>
+                            <option value="cs2">9,5 [μF]</option>
+                            <option value="cs3">1 [μF]</option>
+                            <option value="cs4">222 [nF]</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Resistance (R1s or R2r) -->
+                    <div class="parameter-group" id="param-resistance" style="display: none;">
+                        <label for="select-resistance">Resistance (R1s or R2r):</label>
+                        <select id="select-resistance" class="param-select">
+                            <option value="">Select resistance...</option>
+                            <optgroup label="R1s options">
+                                <option value="r1s1">4,9 [Ω]</option>
+                                <option value="r1s2">56,8 [Ω]</option>
+                                <option value="r1s3">739 [Ω]</option>
+                                <option value="r1s4">26,9 [kΩ]</option>
+                            </optgroup>
+                            <optgroup label="R2r options">
+                                <option value="r2r1">14,9 [Ω]</option>
+                                <option value="r2r2">32,9 [Ω]</option>
+                                <option value="r2r3">4,91 [kΩ]</option>
+                                <option value="r2r4">47,4 [kΩ]</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
     <!-- Dashboard JavaScript -->
-    <script src="/static/js/dashboard.js?v=4"></script>
+    <script src="/static/js/dashboard.js"></script>
 </body>
 </html>
