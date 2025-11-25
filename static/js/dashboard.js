@@ -726,14 +726,121 @@ function simulateMeasurementData() {
 }
 
 /**
- * Save results to file
+ * Save results to JSON file
  */
-function saveResults() {
+function saveResultsJSON() {
     if (Object.keys(measurementData).length === 0) {
         alert('No measurement data to save');
         return;
     }
     
+    const exportData = prepareExportData();
+    
+    // Convert to JSON with formatting
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    // Create download link
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `measurement_${selectedCircuit}_${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    console.log('Results saved to JSON file');
+}
+
+/**
+ * Save results to CSV file
+ */
+function saveResultsCSV() {
+    if (Object.keys(measurementData).length === 0) {
+        alert('No measurement data to save');
+        return;
+    }
+    
+    const exportData = prepareExportData();
+    
+    // Build CSV content
+    let csvContent = '';
+    
+    // Metadata section
+    csvContent += '=== METADATA ===\n';
+    csvContent += `Circuit,${exportData.metadata.circuit}\n`;
+    csvContent += `Circuit Description,${exportData.metadata.circuitDescription}\n`;
+    csvContent += `Timestamp,${exportData.metadata.timestamp}\n`;
+    csvContent += `Date,${exportData.metadata.dateFormatted}\n`;
+    csvContent += `Samples per Channel,${exportData.metadata.samplesPerChannel}\n`;
+    csvContent += `Sample Rate,${exportData.metadata.sampleRate} ${exportData.metadata.sampleRateUnit}\n`;
+    csvContent += `Measurement Time,${exportData.metadata.measurementTime} ${exportData.metadata.measurementTimeUnit}\n`;
+    csvContent += '\n';
+    
+    // Parameters section
+    csvContent += '=== PARAMETERS ===\n';
+    if (exportData.parameters.inductance) {
+        csvContent += `Inductance (Ls),${exportData.parameters.inductance.replace('Ω', 'ohm')}\n`;
+    }
+    if (exportData.parameters.capacitance) {
+        csvContent += `Capacitance (Cs),${exportData.parameters.capacitance.replace('μF', 'nF')}\n`;
+    }
+    if (exportData.parameters.resistance) {
+        csvContent += `Resistance,${exportData.parameters.resistance.replace('Ω', 'ohm')}\n`;
+    }
+    csvContent += '\n';
+    
+    // Channels data section
+    csvContent += '=== MEASUREMENT DATA ===\n';
+    
+    // Get all channel IDs
+    const channelIds = Object.keys(exportData.channels);
+    
+    // Create header row with channel information
+    const headerRow1 = ['Sample'];
+    const headerRow2 = ['Index'];
+    
+    channelIds.forEach(channelId => {
+        const channel = exportData.channels[channelId];
+        headerRow1.push(`${channel.channelName} - ${channel.description}`);
+        headerRow2.push(`${channel.unit}`);
+    });
+    
+    csvContent += headerRow1.join(',') + '\n';
+    csvContent += headerRow2.join(',') + '\n';
+    
+    // Data rows
+    const maxLength = Math.max(...channelIds.map(id => exportData.channels[id].data.length));
+    
+    for (let i = 0; i < maxLength; i++) {
+        const row = [i];
+        channelIds.forEach(channelId => {
+            const value = exportData.channels[channelId].data[i];
+            row.push(value !== undefined ? value : '');
+        });
+        csvContent += row.join(',') + '\n';
+    }
+    
+    // Create blob and download
+    const dataBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `measurement_${selectedCircuit}_${Date.now()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    console.log('Results saved to CSV file');
+}
+
+/**
+ * Prepare export data structure (common for JSON and CSV)
+ * @returns {Object} Export data with metadata, parameters, and channels
+ */
+function prepareExportData() {
     // Get selected parameters for metadata
     const selectLs = document.getElementById('select-ls');
     const selectCs = document.getElementById('select-cs');
@@ -763,7 +870,7 @@ function saveResults() {
     });
     
     // Prepare complete export data
-    const exportData = {
+    return {
         metadata: {
             circuit: selectedCircuit.toUpperCase(),
             circuitDescription: getCircuitDescription(selectedCircuit),
@@ -782,22 +889,6 @@ function saveResults() {
         },
         channels: channelsExport
     };
-    
-    // Convert to JSON with formatting
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    
-    // Create download link
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `measurement_${selectedCircuit}_${Date.now()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    console.log('Results saved to file');
 }
 
 /**

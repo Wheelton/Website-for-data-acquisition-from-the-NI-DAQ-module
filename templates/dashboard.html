@@ -9,7 +9,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔌</text></svg>">
     
     <!-- External CSS -->
-    <link rel="stylesheet" href="/static/css/dashboard.css?v=17">
+    <link rel="stylesheet" href="/static/css/dashboard.css?v=18">
 </head>
 <body>
     <div class="container">
@@ -102,10 +102,10 @@
                         <label for="select-ls">Inductance (Ls):</label>
                         <select id="select-ls" class="param-select">
                             <option value="">Select inductance...</option>
-                            <option value="ls1">1/0,5 [mH/Ω]</option>
-                            <option value="ls2">10/2,5 [mH/Ω]</option>
-                            <option value="ls3">75,6/50,1 [mH/Ω]</option>
-                            <option value="ls4">~0,6/1 [H/Ω]</option>
+                            <option value="ls1">1/0.5 [mH/Ω]</option>
+                            <option value="ls2">10/2.5 [mH/Ω]</option>
+                            <option value="ls3">75.6/50.1 [mH/Ω]</option>
+                            <option value="ls4">~0.6/1 [H/Ω]</option>
                         </select>
                         <div class="error-tooltip" id="error-ls">Please select an inductance value</div>
                     </div>
@@ -116,7 +116,7 @@
                         <select id="select-cs" class="param-select">
                             <option value="">Select capacitance...</option>
                             <option value="cs1">48 [μF]</option>
-                            <option value="cs2">9,5 [μF]</option>
+                            <option value="cs2">9.5 [μF]</option>
                             <option value="cs3">1 [μF]</option>
                             <option value="cs4">222 [nF]</option>
                         </select>
@@ -129,16 +129,16 @@
                         <select id="select-resistance" class="param-select">
                             <option value="">Select resistance...</option>
                             <optgroup label="R1s options">
-                                <option value="r1s1">4,9 [Ω]</option>
-                                <option value="r1s2">56,8 [Ω]</option>
+                                <option value="r1s1">4.9 [Ω]</option>
+                                <option value="r1s2">56.8 [Ω]</option>
                                 <option value="r1s3">739 [Ω]</option>
-                                <option value="r1s4">26,9 [kΩ]</option>
+                                <option value="r1s4">26.9 [kΩ]</option>
                             </optgroup>
                             <optgroup label="R2r options">
-                                <option value="r2r1">14,9 [Ω]</option>
-                                <option value="r2r2">32,9 [Ω]</option>
-                                <option value="r2r3">4,91 [kΩ]</option>
-                                <option value="r2r4">47,4 [kΩ]</option>
+                                <option value="r2r1">14.9 [Ω]</option>
+                                <option value="r2r2">32.9 [Ω]</option>
+                                <option value="r2r3">4.91 [kΩ]</option>
+                                <option value="r2r4">47.4 [kΩ]</option>
                             </optgroup>
                         </select>
                         <div class="error-tooltip" id="error-resistance">Please select a resistance value</div>
@@ -157,14 +157,14 @@
                             <label for="input-samples">Samples per Channel:</label>
                             <input type="number" id="input-samples" class="measurement-input" 
                                    value="500" min="10" max="10000" step="10">
-                            <div class="error-tooltip" id="error-samples">Value must be between 10 and 10,000</div><!-- TODO: Adjust precise available values-->
+                            <div class="error-tooltip" id="error-samples">Value must be between 10 and 10.000</div><!-- TODO: Adjust precise available values-->
                         </div>
                         
                         <div class="input-group">
                             <label for="input-sample-rate">Sample Rate (Hz):</label>
                             <input type="number" id="input-sample-rate" class="measurement-input" 
                                    value="100" min="1" max="10000" step="1">
-                            <div class="error-tooltip" id="error-sample-rate">Value must be between 1 and 10,000 Hz</div><!-- TODO: Adjust precise available values-->
+                            <div class="error-tooltip" id="error-sample-rate">Value must be between 1 and 10.000 Hz</div><!-- TODO: Adjust precise available values-->
                         </div>
                         
                         <div class="input-group">
@@ -172,7 +172,7 @@
                             <input type="number" id="input-measurement-time" class="measurement-input" 
                                    value="5" min="0.1" max="3600" step="0.1" 
                                    placeholder="Auto stop time">
-                            <div class="error-tooltip" id="error-measurement-time">Value must be between 0.1 and 3,600 seconds</div><!-- TODO: Adjust precise available values-->
+                            <div class="error-tooltip" id="error-measurement-time">Value must be between 0.1 and 3.600 seconds</div><!-- TODO: Adjust precise available values-->
                         </div>
                     </div>
                     
@@ -196,8 +196,11 @@
             <p class="results-subtitle">Real-time data acquisition from selected channels</p>
             
             <div class="results-controls">
-                <button class="result-btn btn-save" id="btnSaveResults" onclick="saveResults()">
-                    💾 Save Results to File
+                <button class="result-btn btn-save" id="btnSaveJSON" onclick="saveResultsJSON()">
+                    💾 Save Results to JSON
+                </button>
+                <button class="result-btn btn-save-csv" id="btnSaveCSV" onclick="saveResultsCSV()">
+                    📄 Save Results to CSV
                 </button>
                 <button class="result-btn btn-clear" id="btnClearResults" onclick="clearResults()">
                     🗑️ Clear Results
