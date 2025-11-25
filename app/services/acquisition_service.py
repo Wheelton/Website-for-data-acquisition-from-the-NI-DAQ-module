@@ -16,113 +16,80 @@ class AcquisitionService:
     def __init__(self):
         self.channels = daq_channels
         self.relay_service = relay_service
+        
+        # Capacitor to relay mapping
+        self.capacitor_relays = {
+            'cs1': 'zk2_1',  # 48 μF
+            'cs2': 'zk2_2',  # 9.5 μF
+            'cs3': 'zk2_3',  # 1 μF
+            'cs4': 'zk2_4',  # 222 nF
+        }
+        
+        # Discharge resistor to relay mapping
+        self.discharge_resistor_relays = {
+            'rz1': 'zk2_5',  # 3 Ω (R2s1)
+            'rz2': 'zk2_6',  # 21.7 Ω (R2s2)
+            'rz3': 'zk2_7',  # 357 Ω (R2s3)
+            'rz4': 'zk2_8',  # 2.18 kΩ (R2s4)
+        }
+        
+        # Active acquisition task state
+        self._active_task = None
+        self._task_config = None
     
-    def charge_capacitor_cs1(self):
+    def discharge_capacitor(self, capacitor: str = 'cs1', discharge_resistor: str = 'rz2', duration: float = 0.5):
         """
-        Execute capacitor Cs1 charging sequence
+        Execute capacitor discharge sequence through specified discharge resistor
         
-        Sequence:
-        1. Discharge phase (short circuit through resistor)
-        2. Charging phase (connect to power supply)
+        Args:
+            capacitor: Capacitor identifier ('cs1', 'cs2', 'cs3', or 'cs4')
+                      cs1 = 48 μF
+                      cs2 = 9.5 μF
+                      cs3 = 1 μF
+                      cs4 = 222 nF
+            discharge_resistor: Discharge resistor identifier ('rz1', 'rz2', 'rz3', or 'rz4')
+                               rz1 = 3 Ω
+                               rz2 = 21.7 Ω (default - R2s2)
+                               rz3 = 357 Ω
+                               rz4 = 2.18 kΩ
+            duration: Discharge duration in seconds (default: 0.5)
         
-        Note: After data collection, remember to turn off main relay (zs1_1)
+        Raises:
+            ValueError: If capacitor or discharge_resistor identifier is invalid
+            
+        Note: All relays are turned off after discharge
         """
+        # Validate capacitor
+        capacitor_lower = capacitor.lower()
+        if capacitor_lower not in self.capacitor_relays:
+            raise ValueError(f"Invalid capacitor '{capacitor}'. Must be one of: {', '.join(self.capacitor_relays.keys())}")
+        
+        # Validate discharge resistor
+        discharge_resistor_lower = discharge_resistor.lower()
+        if discharge_resistor_lower not in self.discharge_resistor_relays:
+            raise ValueError(f"Invalid discharge resistor '{discharge_resistor}'. Must be one of: {', '.join(self.discharge_resistor_relays.keys())}")
+        
+        capacitor_relay = self.capacitor_relays[capacitor_lower]
+        discharge_relay = self.discharge_resistor_relays[discharge_resistor_lower]
+        
         # -------------- Discharge phase --------------
         self.relay_service.zs1_1(False)  # Main power OFF
         self.relay_service.zs1_2(True)   # ADC1 short circuit
         self.relay_service.zk1_5(True)   # R_1_1 ON
-        self.relay_service.zk1_8(False)  # R1s4 OFF
-        self.relay_service.zk2_1(True)   # Cs_1 ON
+        self.relay_service.control_relay(capacitor_relay, True)  # Selected capacitor ON
         self.relay_service.zs2_1(True)   # GND ON
         self.relay_service.zs2_2(True)   # Discharge circuit short
-        self.relay_service.zk2_5(True)   # Short through resistor R2s_1
+        self.relay_service.control_relay(discharge_relay, True)  # Selected discharge resistor ON
         
-        time.sleep(0.5)  # Wait for discharge
+        time.sleep(duration)  # Wait for discharge
         
+        # Turn off all relays
         self.relay_service.zs2_2(False)  # Discharge circuit OFF
-        self.relay_service.zk2_5(False)  # R2s_1 OFF
-        
-        # -------------- Charging phase --------------
+        self.relay_service.control_relay(discharge_relay, False)  # Discharge resistor OFF
         self.relay_service.zk1_5(False)  # R_1_1 OFF
-        self.relay_service.zk1_8(True)   # R1s4 ON
-        self.relay_service.zs1_1(True)   # Main power ON
-        
-        # NOTE: After data collection, turn OFF main power with:
-        # self.relay_service.zs1_1(False)
-    
-    def read_adc_data(
-        self, 
-        samples_per_channel: int = 500, 
-        sample_rate: int = 100,
-        charge_first: bool = False
-    ) -> Tuple[List[float], List[float], List[float], List[float]]:
-        """
-        Read data from all 4 ADC channels
-        
-        Args:
-            samples_per_channel: Number of samples to read per channel
-            sample_rate: Sampling rate in Hz
-            charge_first: If True, charge capacitor before reading
-            
-        Returns:
-            Tuple of (adc1_data, adc2_data, adc3_data, adc4_data)
-        """
-        samplemode = AcquisitionType.FINITE
-        
-        with ni.Task() as task_ai:
-            # Configure analog input channels
-            task_ai.ai_channels.add_ai_voltage_chan(self.channels.adc['all'])
-            task_ai.timing.cfg_samp_clk_timing(
-                rate=sample_rate, 
-                sample_mode=samplemode
-            )
-            
-            # Charge capacitor if requested
-            if charge_first:
-                self.charge_capacitor_cs1()
-            
-            # Read data
-            data = task_ai.read(number_of_samples_per_channel=samples_per_channel)
-        
-        return data[0], data[1], data[2], data[3]
-    
-    def read_with_charging(
-        self,
-        samples_per_channel: int = 500,
-        sample_rate: int = 100
-    ) -> Tuple[List[float], List[float], List[float], List[float]]:
-        """
-        Complete acquisition cycle: charge capacitor and read data
-        Automatically turns off relays after reading
-        
-        Args:
-            samples_per_channel: Number of samples to read per channel
-            sample_rate: Sampling rate in Hz
-            
-        Returns:
-            Tuple of (adc1_data, adc2_data, adc3_data, adc4_data)
-        """
-        try:
-            samplemode = AcquisitionType.FINITE
-            
-            with ni.Task() as task_ai:
-                # Configure channels
-                task_ai.ai_channels.add_ai_voltage_chan(self.channels.adc['all'])
-                task_ai.timing.cfg_samp_clk_timing(
-                    rate=sample_rate,
-                    sample_mode=samplemode
-                )
-                
-                # Charge and read
-                self.charge_capacitor_cs1()
-                data = task_ai.read(number_of_samples_per_channel=samples_per_channel)
-            
-            return data[0], data[1], data[2], data[3]
-            
-        finally:
-            # Always turn off relays
-            self.relay_service.zk1_8(False)
-            self.relay_service.zs1_1(False)
+        self.relay_service.zs1_2(False)  # ADC1 short circuit OFF
+        self.relay_service.control_relay(capacitor_relay, False)  # Capacitor OFF
+        self.relay_service.zs2_1(False)  # GND OFF
     
     def read_continuous_sample(
         self,
@@ -151,6 +118,103 @@ class AcquisitionService:
             data = task_ai.read(number_of_samples_per_channel=samples_per_channel)
         
         return data[0], data[1], data[2], data[3]
+    
+    def start_read_adc(
+        self,
+        samples_per_channel: int = 500,
+        sample_rate: int = 100
+    ) -> dict:
+        """
+        Start continuous ADC measurement from all 4 ADC channels
+        
+        This method configures and starts continuous data acquisition without
+        returning any data. Data collection happens in the background until
+        stop_read_adc() is called.
+        
+        Args:
+            samples_per_channel: Number of samples per channel to acquire
+            sample_rate: Sampling rate in Hz
+            
+        Returns:
+            Dictionary with status and configuration info
+            
+        Raises:
+            RuntimeError: If acquisition is already running
+        """
+        if self._active_task is not None:
+            raise RuntimeError("ADC acquisition is already running. Stop it first with stop_read_adc()")
+        
+        # Create and configure the task
+        self._active_task = ni.Task()
+        
+        # Configure analog input channels
+        self._active_task.ai_channels.add_ai_voltage_chan(self.channels.adc['all'])
+        
+        # Configure timing for finite acquisition
+        self._active_task.timing.cfg_samp_clk_timing(
+            rate=sample_rate,
+            sample_mode=AcquisitionType.FINITE,
+            samps_per_chan=samples_per_channel
+        )
+        
+        # Start the task (begins acquisition)
+        self._active_task.start()
+        
+        # Store configuration for later reference
+        self._task_config = {
+            'samples_per_channel': samples_per_channel,
+            'sample_rate': sample_rate,
+            'channels': 4
+        }
+        
+        return {
+            'status': 'started',
+            'samples_per_channel': samples_per_channel,
+            'sample_rate': sample_rate,
+            'channels': 4
+        }
+    
+    def stop_read_adc(self) -> Tuple[List[float], List[float], List[float], List[float]]:
+        """
+        Stop ADC acquisition and return all collected data
+        
+        This method stops the running acquisition task and returns all
+        data collected from the 4 ADC channels since start_read_adc() was called.
+        
+        Returns:
+            Tuple of (adc1_data, adc2_data, adc3_data, adc4_data)
+            
+        Raises:
+            RuntimeError: If no acquisition is currently running
+        """
+        if self._active_task is None:
+            raise RuntimeError("No ADC acquisition is running. Start it first with start_read_adc()")
+        
+        try:
+            # Read all available data
+            data = self._active_task.read(
+                number_of_samples_per_channel=self._task_config['samples_per_channel']
+            )
+            
+            # Stop and close the task
+            self._active_task.stop()
+            self._active_task.close()
+            
+            return data[0], data[1], data[2], data[3]
+            
+        finally:
+            # Always clean up the task
+            self._active_task = None
+            self._task_config = None
+    
+    def is_acquisition_running(self) -> bool:
+        """
+        Check if ADC acquisition is currently running
+        
+        Returns:
+            True if acquisition is running, False otherwise
+        """
+        return self._active_task is not None
 
 
 acquisition_service = AcquisitionService()

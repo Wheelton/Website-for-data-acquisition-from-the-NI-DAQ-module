@@ -51,14 +51,23 @@ def create_application() -> FastAPI:
         return {
             "name": settings.app_name,
             "version": settings.app_version,
+            "total_relays": "56 relays across 6 modules (ZS1, ZS2, ZK1, ZK2, ZK3, ZK4)",
             "endpoints": {
                 "docs": "/docs",
                 "redoc": "/redoc",
                 "dashboard": "/dashboard",
                 "devices": "/api/devices",
-                "relays": "/api/relay/{relay_name}/{state}",
-                "read_daq": "/api/read-daq",
-                "charge_capacitor": "/api/charge-capacitor",
+                "all_relays": "/api/relays",
+                "relays_by_module": "/api/relays/module/{module_name}",
+                "relay_states": "/api/relays/states",
+                "control_relay": "/api/relay/{relay_name}/{state}",
+                "control_multiple_relays": "/api/relays/multiple",
+                "disable_all_relays": "/api/relays/disable-all",
+                "disable_enabled_relays": "/api/relays/disable-enabled",
+                "start_read_adc": "/api/start-read-adc",
+                "stop_read_adc": "/api/stop-read-adc",
+                "adc_status": "/api/adc-status",
+                "discharge_capacitor": "/api/discharge-capacitor",
                 "websocket": "/ws/daq"
             }
         }
