@@ -13,7 +13,7 @@ let measurementData = {};
 // Persistent measurement values (remember across circuit switches)
 let measurementValues = {
     samples: 500,
-    sampleRate: 10,
+    sampleRate: 100,
     measurementTime: 5
 };
 
@@ -254,7 +254,7 @@ function updateBufferWarning() {
     
     // Calculate required buffer size (same formula as backend)
     if (measurementTime > 0 && sampleRate > 0) {
-        const calculatedBuffer = Math.floor(sampleRate * measurementTime * 1.5);
+        const calculatedBuffer = Math.floor(sampleRate * measurementTime * 1.15);
         
         // Show warning if calculated buffer is larger than user's input
         if (calculatedBuffer > samples) {
@@ -352,7 +352,7 @@ function validateParameters() {
     
     // Validate measurement inputs
     const samplesValue = parseFloat(inputSamples.value);
-    if (!samplesValue || samplesValue < 10 || samplesValue > 500000) {
+    if (!samplesValue || samplesValue < 100 || samplesValue > 100000) {
         missingParams.push('Samples');
         showError(inputSamples, 'error-samples');
         allValid = false;
@@ -361,7 +361,7 @@ function validateParameters() {
     }
     
     const sampleRateValue = parseFloat(inputSampleRate.value);
-    if (!sampleRateValue || sampleRateValue < 1 || sampleRateValue > 10000) {
+    if (!sampleRateValue || sampleRateValue < 1 || sampleRateValue > 100000) {
         missingParams.push('Sample Rate');
         showError(inputSampleRate, 'error-sample-rate');
         allValid = false;
@@ -370,7 +370,7 @@ function validateParameters() {
     }
     
     const measurementTimeValue = parseFloat(inputMeasurementTime.value);
-    if (!measurementTimeValue || measurementTimeValue < 0.01 || measurementTimeValue > 3600) {
+    if (!measurementTimeValue || measurementTimeValue < 0.01 || measurementTimeValue > 10) {
         missingParams.push('Measurement Time');
         showError(inputMeasurementTime, 'error-measurement-time');
         allValid = false;
@@ -746,7 +746,7 @@ function initializeCharts() {
 function updateChart(channelId, data) {
     const chart = charts[channelId];
     if (!chart) return;
-    
+
     chart.data.labels = data.map((_, i) => i);
     chart.data.datasets[0].data = data;
     chart.update();
@@ -812,8 +812,8 @@ async function startAdcAcquisition() {
         console.log('ADC acquisition started:', result);
         if (result.buffer_size) {
             console.log(`Buffer size: ${result.buffer_size} samples (for ${measurementValues.measurementTime}s at ${measurementValues.sampleRate} Hz)`);
-        }
-        
+}
+
         // Set up automatic stop timer if measurement time is specified
         if (measurementValues.measurementTime > 0) {
             measurementTimer = setTimeout(() => {

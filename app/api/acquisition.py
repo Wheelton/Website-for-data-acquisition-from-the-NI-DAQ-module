@@ -14,9 +14,9 @@ router = APIRouter(prefix="/api", tags=["acquisition"])
 
 @router.post("/start-read-adc")
 async def start_read_adc(
-    samples: int = Query(default=500, ge=10, le=500000, description="Number of samples per channel (or buffer size)"),
-    sample_rate: int = Query(default=100, ge=1, le=10000, description="Sampling rate in Hz"),
-    measurement_time: float = Query(default=0, ge=0, le=3600, description="Expected measurement duration in seconds (optional)")
+    samples: int = Query(default=500, ge=100, le=100000, description="Number of samples per channel (or buffer size)"),
+    sample_rate: int = Query(default=100, ge=1, le=100000, description="Sampling rate in Hz"),
+    measurement_time: float = Query(default=0, ge=0, le=10, description="Expected measurement duration in seconds (optional)")
 ):
     """
     Start continuous ADC measurement from all 4 ADC channels
@@ -32,9 +32,9 @@ async def start_read_adc(
     3. Call /stop-read-adc to get all collected data
     
     Args:
-        samples: Number of samples per channel to acquire (default: 500, range: 10-500000)
-        sample_rate: Sampling rate in Hz (default: 100, range: 1-10000)
-        measurement_time: Expected measurement duration in seconds (optional, helps calculate buffer size)
+        samples: Number of samples per channel to acquire (default: 500, range: 100-100000)
+        sample_rate: Sampling rate in Hz (default: 100, range: 1-100000)
+        measurement_time: Expected measurement duration in seconds (default: 0, range: 0-10)
         
     Returns:
         Status message confirming acquisition has started
@@ -44,7 +44,7 @@ async def start_read_adc(
         # Otherwise use the samples parameter
         if measurement_time > 0:
             # Buffer size = sample_rate * measurement_time * safety_margin
-            calculated_buffer = int(sample_rate * measurement_time * 1.5)  # 50% safety margin
+            calculated_buffer = int(sample_rate * measurement_time * 1.15)  # 15% safety margin
             buffer_size = max(calculated_buffer, samples)  # Use larger of calculated or provided
         else:
             buffer_size = samples
