@@ -14,8 +14,9 @@ router = APIRouter(prefix="/api", tags=["acquisition"])
 
 @router.post("/start-read-adc")
 async def start_read_adc(
-    samples: int = Query(default=500, ge=10, le=10000, description="Number of samples per channel"),
-    sample_rate: int = Query(default=100, ge=1, le=10000, description="Sampling rate in Hz")
+    samples: int = Query(default=500, ge=10, le=500000, description="Number of samples per channel (or buffer size)"),
+    sample_rate: int = Query(default=100, ge=1, le=10000, description="Sampling rate in Hz"),
+    measurement_time: float = Query(default=0, ge=0, le=3600, description="Expected measurement duration in seconds (optional)")
 ):
     """
     Start continuous ADC measurement from all 4 ADC channels
@@ -31,24 +32,35 @@ async def start_read_adc(
     3. Call /stop-read-adc to get all collected data
     
     Args:
-        samples: Number of samples per channel to acquire (default: 500, range: 10-10000)
+        samples: Number of samples per channel to acquire (default: 500, range: 10-500000)
         sample_rate: Sampling rate in Hz (default: 100, range: 1-10000)
+        measurement_time: Expected measurement duration in seconds (optional, helps calculate buffer size)
         
     Returns:
         Status message confirming acquisition has started
     """
     try:
+        # Calculate optimal buffer size based on measurement time if provided
+        # Otherwise use the samples parameter
+        if measurement_time > 0:
+            # Buffer size = sample_rate * measurement_time * safety_margin
+            calculated_buffer = int(sample_rate * measurement_time * 1.5)  # 50% safety margin
+            buffer_size = max(calculated_buffer, samples)  # Use larger of calculated or provided
+        else:
+            buffer_size = samples
+        
         result = acquisition_service.start_read_adc(
-            samples_per_channel=samples,
+            samples_per_channel=buffer_size,
             sample_rate=sample_rate
         )
         
         return {
             "status": "started",
-            "message": "ADC acquisition started successfully",
+            "message": f"ADC acquisition started successfully with buffer size: {buffer_size}",
             "samples_per_channel": result['samples_per_channel'],
             "sample_rate": result['sample_rate'],
             "channels": result['channels'],
+            "buffer_size": buffer_size,
             "timestamp": datetime.now().isoformat()
         }
     except RuntimeError as e:

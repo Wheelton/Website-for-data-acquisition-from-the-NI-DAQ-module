@@ -13,7 +13,7 @@ let measurementData = {};
 // Persistent measurement values (remember across circuit switches)
 let measurementValues = {
     samples: 500,
-    sampleRate: 100,
+    sampleRate: 10,
     measurementTime: 5
 };
 
@@ -210,8 +210,63 @@ function setupParameterValidation() {
     selectCs.addEventListener('change', validateParameters);
     selectResistance.addEventListener('change', validateParameters);
     
+    // Add listeners for measurement inputs (for buffer warning)
+    const inputSamples = document.getElementById('input-samples');
+    const inputSampleRate = document.getElementById('input-sample-rate');
+    const inputMeasurementTime = document.getElementById('input-measurement-time');
+    
+    if (inputSamples) {
+        inputSamples.addEventListener('input', updateBufferWarning);
+        inputSamples.addEventListener('change', updateBufferWarning);
+    }
+    if (inputSampleRate) {
+        inputSampleRate.addEventListener('input', updateBufferWarning);
+        inputSampleRate.addEventListener('change', updateBufferWarning);
+    }
+    if (inputMeasurementTime) {
+        inputMeasurementTime.addEventListener('input', updateBufferWarning);
+        inputMeasurementTime.addEventListener('change', updateBufferWarning);
+    }
+    
     // Initial validation
     validateParameters();
+    updateBufferWarning();
+}
+
+/**
+ * Update buffer size warning based on current input values
+ */
+function updateBufferWarning() {
+    const inputSamples = document.getElementById('input-samples');
+    const inputSampleRate = document.getElementById('input-sample-rate');
+    const inputMeasurementTime = document.getElementById('input-measurement-time');
+    const bufferWarning = document.getElementById('bufferWarning');
+    const warningCurrentBuffer = document.getElementById('warningCurrentBuffer');
+    const warningCalculatedBuffer = document.getElementById('warningCalculatedBuffer');
+    
+    if (!inputSamples || !inputSampleRate || !inputMeasurementTime || !bufferWarning) {
+        return;
+    }
+    
+    const samples = parseFloat(inputSamples.value) || 0;
+    const sampleRate = parseFloat(inputSampleRate.value) || 0;
+    const measurementTime = parseFloat(inputMeasurementTime.value) || 0;
+    
+    // Calculate required buffer size (same formula as backend)
+    if (measurementTime > 0 && sampleRate > 0) {
+        const calculatedBuffer = Math.floor(sampleRate * measurementTime * 1.5);
+        
+        // Show warning if calculated buffer is larger than user's input
+        if (calculatedBuffer > samples) {
+            warningCurrentBuffer.textContent = samples.toLocaleString();
+            warningCalculatedBuffer.textContent = calculatedBuffer.toLocaleString();
+            bufferWarning.style.display = 'flex';
+        } else {
+            bufferWarning.style.display = 'none';
+        }
+    } else {
+        bufferWarning.style.display = 'none';
+    }
 }
 
 /**
@@ -297,7 +352,7 @@ function validateParameters() {
     
     // Validate measurement inputs
     const samplesValue = parseFloat(inputSamples.value);
-    if (!samplesValue || samplesValue < 10 || samplesValue > 10000) {
+    if (!samplesValue || samplesValue < 10 || samplesValue > 500000) {
         missingParams.push('Samples');
         showError(inputSamples, 'error-samples');
         allValid = false;
@@ -315,7 +370,7 @@ function validateParameters() {
     }
     
     const measurementTimeValue = parseFloat(inputMeasurementTime.value);
-    if (!measurementTimeValue || measurementTimeValue < 0.1 || measurementTimeValue > 3600) {
+    if (!measurementTimeValue || measurementTimeValue < 0.01 || measurementTimeValue > 3600) {
         missingParams.push('Measurement Time');
         showError(inputMeasurementTime, 'error-measurement-time');
         allValid = false;
@@ -450,6 +505,9 @@ function showMeasurementSection() {
     inputSamples.addEventListener('input', handleMeasurementInput);
     inputSampleRate.addEventListener('input', handleMeasurementInput);
     inputMeasurementTime.addEventListener('input', handleMeasurementInput);
+    
+    // Update buffer warning with restored values
+    updateBufferWarning();
 }
 
 /**
@@ -458,6 +516,7 @@ function showMeasurementSection() {
 function handleMeasurementInput() {
     saveMeasurementValues();
     validateParameters();
+    updateBufferWarning();
 }
 
 /**
@@ -550,18 +609,8 @@ function startMeasurement() {
         }
     }, 200);
     
-    // Set automatic stop timer if measurement time is specified
-    if (measurementValues.measurementTime > 0) {
-        measurementTimer = setTimeout(() => {
-            stopMeasurement();
-            console.log('Measurement stopped automatically after ' + measurementValues.measurementTime + ' seconds');
-        }, measurementValues.measurementTime * 1000);
-    }
-    
-    // TODO: Implement actual data acquisition logic here
-    // This will be connected to your backend API endpoints
-    // For now, simulate some data
-    simulateMeasurementData();
+    // Start ADC acquisition via backend API
+    startAdcAcquisition();
 }
 
 /**
@@ -574,19 +623,10 @@ function stopMeasurement() {
         measurementTimer = null;
     }
     
-    // Update button states
-    isMeasuring = false;
-    const stopBtn = document.getElementById('btnStopMeasurement');
+    console.log('Stopping measurement...');
     
-    stopBtn.disabled = true;
-    stopBtn.setAttribute('data-tooltip', 'No active measurement to stop');
-    
-    console.log('Measurement stopped');
-    
-    // Revalidate parameters to update start button state
-    validateParameters();
-    
-    // TODO: Implement actual measurement stop logic here
+    // Stop ADC acquisition and get data via backend API
+    stopAdcAcquisition();
 }
 
 // ============== Results Section ==============
@@ -716,8 +756,144 @@ function updateChart(channelId, data) {
 }
 
 /**
+ * Sync measurement state with backend
+ * Checks if backend has an active acquisition and updates UI accordingly
+ */
+async function syncMeasurementState() {
+    try {
+        const response = await fetch('/api/adc-status');
+        if (!response.ok) {
+            console.warn('Could not sync measurement state with backend');
+            return;
+        }
+        
+        const status = await response.json();
+        console.log('Backend measurement status:', status);
+        
+        // If backend says no acquisition is running, ensure frontend reflects that
+        if (!status.is_running && isMeasuring) {
+            console.log('Syncing state: Backend has no active acquisition');
+            isMeasuring = false;
+            if (measurementTimer) {
+                clearTimeout(measurementTimer);
+                measurementTimer = null;
+            }
+            validateParameters();
+        }
+    } catch (error) {
+        console.error('Error syncing measurement state:', error);
+    }
+}
+
+/**
+ * Start ADC acquisition via backend API
+ */
+async function startAdcAcquisition() {
+    try {
+        const params = new URLSearchParams({
+            samples: measurementValues.samples,
+            sample_rate: measurementValues.sampleRate,
+            measurement_time: measurementValues.measurementTime || 0
+        });
+        
+        const response = await fetch(`/api/start-read-adc?${params}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to start ADC acquisition');
+        }
+        
+        const result = await response.json();
+        console.log('ADC acquisition started:', result);
+        if (result.buffer_size) {
+            console.log(`Buffer size: ${result.buffer_size} samples (for ${measurementValues.measurementTime}s at ${measurementValues.sampleRate} Hz)`);
+        }
+        
+        // Set up automatic stop timer if measurement time is specified
+        if (measurementValues.measurementTime > 0) {
+            measurementTimer = setTimeout(() => {
+                console.log('Measurement time elapsed, stopping automatically...');
+                stopMeasurement();
+            }, measurementValues.measurementTime * 1000);
+        }
+        
+    } catch (error) {
+        console.error('Error starting ADC acquisition:', error);
+        alert(`Failed to start measurement: ${error.message}\n\nPlease try again.`);
+        
+        // Reset button states on error
+        isMeasuring = false;
+        validateParameters();
+        
+        // Sync with backend to ensure clean state
+        await syncMeasurementState();
+    }
+}
+
+/**
+ * Stop ADC acquisition and get data via backend API
+ */
+async function stopAdcAcquisition() {
+    // Clear automatic stop timer
+    if (measurementTimer) {
+        clearTimeout(measurementTimer);
+        measurementTimer = null;
+    }
+    
+    try {
+        const response = await fetch('/api/stop-read-adc', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to stop ADC acquisition');
+        }
+        
+        const result = await response.json();
+        console.log('ADC acquisition stopped, data received:', result);
+        console.log(`Received ${result.samples} samples from ${result.channels} channels`);
+        
+        // Update charts with real data from backend
+        updateChartsWithData(result.data);
+        
+        // Update button states
+        isMeasuring = false;
+        const stopBtn = document.getElementById('btnStopMeasurement');
+        
+        stopBtn.disabled = true;
+        stopBtn.setAttribute('data-tooltip', 'No active measurement to stop');
+        
+        // Revalidate parameters to update start button state
+        validateParameters();
+        
+    } catch (error) {
+        console.error('Error stopping ADC acquisition:', error);
+        alert(`Failed to stop measurement: ${error.message}\n\nThe measurement state has been reset. You can start a new measurement.`);
+        
+        // Reset button states on error
+        isMeasuring = false;
+        const stopBtn = document.getElementById('btnStopMeasurement');
+        stopBtn.disabled = false;
+        validateParameters();
+        
+        // Sync with backend to ensure clean state
+        await syncMeasurementState();
+    }
+}
+
+/**
  * Simulate measurement data for testing
- * TODO: Replace with actual data acquisition from backend
+ * NOTE: This function is kept for future reference but is not currently used
+ * The application now uses real data from the backend API
  */
 function simulateMeasurementData() {
     const samples = measurementValues.samples;
@@ -731,6 +907,42 @@ function simulateMeasurementData() {
             data.push(value);
         }
         updateChart(channelId, data);
+    });
+}
+
+/**
+ * Update charts with real data from backend
+ */
+function updateChartsWithData(data) {
+    // Map ADC channels to chart IDs based on selected circuit
+    const channelMappings = {
+        'rl': [
+            { adc: 'adc1', chartId: 'ch1' },
+            { adc: 'adc2', chartId: 'ch2' },
+            { adc: 'adc3', chartId: 'ch3' },
+            { adc: 'adc4', chartId: 'ch4' }
+        ],
+        'rc': [
+            { adc: 'adc1', chartId: 'ch1' },
+            { adc: 'adc2', chartId: 'ch2' },
+            { adc: 'adc3', chartId: 'ch3' },
+            { adc: 'adc4', chartId: 'ch4' }
+        ],
+        'rlc': [
+            { adc: 'adc1', chartId: 'ch1' },
+            { adc: 'adc2', chartId: 'ch2' },
+            { adc: 'adc3', chartId: 'ch3' },
+            { adc: 'adc4', chartId: 'ch4' }
+        ]
+    };
+    
+    const mapping = channelMappings[selectedCircuit] || [];
+    
+    // Update each chart with corresponding ADC data
+    mapping.forEach(({ adc, chartId }) => {
+        if (data[adc] && charts[chartId]) {
+            updateChart(chartId, data[adc]);
+        }
     });
 }
 

@@ -150,11 +150,12 @@ class AcquisitionService:
         # Configure analog input channels
         self._active_task.ai_channels.add_ai_voltage_chan(self.channels.adc['all'])
         
-        # Configure timing for finite acquisition
+        # Configure timing for CONTINUOUS acquisition
+        # This allows stopping at any time and reading whatever data is available
         self._active_task.timing.cfg_samp_clk_timing(
             rate=sample_rate,
-            sample_mode=AcquisitionType.FINITE,
-            samps_per_chan=samples_per_channel
+            sample_mode=AcquisitionType.CONTINUOUS,
+            samps_per_chan=samples_per_channel  # Buffer size
         )
         
         # Start the task (begins acquisition)
@@ -190,20 +191,44 @@ class AcquisitionService:
         if self._active_task is None:
             raise RuntimeError("No ADC acquisition is running. Start it first with start_read_adc()")
         
+        task_to_cleanup = self._active_task
+        config_to_return = self._task_config
+        
         try:
-            # Read all available data
-            data = self._active_task.read(
-                number_of_samples_per_channel=self._task_config['samples_per_channel']
+            # Read all available samples (-1 means read all available)
+            # This works with CONTINUOUS mode and returns whatever is in the buffer
+            data = task_to_cleanup.read(
+                number_of_samples_per_channel=-1
             )
             
-            # Stop and close the task
-            self._active_task.stop()
-            self._active_task.close()
+            # Validate data format
+            if data is None or len(data) < 4:
+                raise ValueError(f"Invalid data received from DAQ: expected 4 channels, got {len(data) if data else 0}")
             
-            return data[0], data[1], data[2], data[3]
+            # Extract data for each channel
+            adc1_data = data[0] if isinstance(data[0], list) else [data[0]]
+            adc2_data = data[1] if isinstance(data[1], list) else [data[1]]
+            adc3_data = data[2] if isinstance(data[2], list) else [data[2]]
+            adc4_data = data[3] if isinstance(data[3], list) else [data[3]]
+            
+            print(f"ADC acquisition stopped. Collected {len(adc1_data)} samples per channel.")
+            
+            return adc1_data, adc2_data, adc3_data, adc4_data
+            
+        except Exception as e:
+            print(f"Error reading ADC data: {str(e)}")
+            raise
             
         finally:
-            # Always clean up the task
+            # Always clean up the task, even if read fails
+            try:
+                if task_to_cleanup is not None:
+                    task_to_cleanup.stop()
+                    task_to_cleanup.close()
+            except Exception as cleanup_error:
+                print(f"Error during task cleanup: {str(cleanup_error)}")
+            
+            # Clear state
             self._active_task = None
             self._task_config = None
     
