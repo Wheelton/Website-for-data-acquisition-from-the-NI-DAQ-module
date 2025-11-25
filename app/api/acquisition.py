@@ -5,48 +5,28 @@ from fastapi import APIRouter, HTTPException, Query
 from datetime import datetime
 from app.models.schemas import (
     DAQReadResponse,
-    DAQData,
-    CapacitorChargeResponse
+    DAQData
 )
 from app.services.acquisition_service import acquisition_service
 
 router = APIRouter(prefix="/api", tags=["acquisition"])
 
 
-@router.post("/charge-capacitor", response_model=CapacitorChargeResponse)
-async def charge_capacitor():
-    """
-    Execute the capacitor charging sequence
-    
-    Returns:
-        Status message confirming capacitor charging
-    """
-    try:
-        acquisition_service.charge_capacitor_cs1()
-        return CapacitorChargeResponse(
-            status="success",
-            message="Capacitor charging sequence completed",
-            timestamp=datetime.now().isoformat()
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error charging capacitor: {str(e)}"
-        )
-
-
-@router.post("/read-daq", response_model=DAQReadResponse)
-async def read_daq_data(
+@router.post("/start-read-adc", response_model=DAQReadResponse)
+async def start_read_adc(
     samples: int = Query(default=500, ge=10, le=10000, description="Number of samples per channel"),
     sample_rate: int = Query(default=100, ge=1, le=10000, description="Sampling rate in Hz")
 ):
     """
-    Read data from all 4 ADC channels
+    Start ADC measurement and read data from all 4 ADC channels
     
-    This endpoint performs a complete acquisition cycle:
-    1. Charges the capacitor
-    2. Reads data from all channels
-    3. Turns off relays
+    This endpoint ONLY reads ADC data without any relay control.
+    It does not charge capacitors or modify any relay states.
+    
+    Use this endpoint when:
+    - Relays are already configured manually
+    - You want direct ADC readings without circuit modifications
+    - Testing ADC channels independently
     
     Args:
         samples: Number of samples per channel (default: 500, range: 10-10000)
@@ -56,8 +36,8 @@ async def read_daq_data(
         Acquired data from all 4 ADC channels
     """
     try:
-        # Read data with automatic charging and relay management
-        adc1, adc2, adc3, adc4 = acquisition_service.read_with_charging(
+        # Read ADC data only, no relay control
+        adc1, adc2, adc3, adc4 = acquisition_service.read_adc_only(
             samples_per_channel=samples,
             sample_rate=sample_rate
         )
@@ -78,6 +58,6 @@ async def read_daq_data(
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error reading DAQ data: {str(e)}"
+            detail=f"Error reading ADC data: {str(e)}"
         )
 

@@ -36,6 +36,53 @@ class RelaysListResponse(BaseModel):
     relays: List[str]
 
 
+class RelaysByModuleResponse(BaseModel):
+    """Response model for relays in a specific module"""
+    module: str
+    relays: List[str]
+
+
+class MultipleRelayControlRequest(BaseModel):
+    """Request model for controlling multiple relays"""
+    relay_states: Dict[str, bool] = Field(
+        description="Dictionary of relay names and their desired states",
+        example={"zs1_1": True, "zk1_5": False, "zk2_1": True}
+    )
+
+
+class MultipleRelayControlResponse(BaseModel):
+    """Response model for multiple relay control"""
+    status: str
+    message: str
+    relays_controlled: int
+    timestamp: str
+
+
+class RelayState(BaseModel):
+    """Single relay state information"""
+    name: str
+    channel: str
+    state: bool
+    module: str
+
+
+class AllRelayStatesResponse(BaseModel):
+    """Response model for all relay states"""
+    total_relays: int
+    enabled_count: int
+    disabled_count: int
+    relays: List[RelayState]
+    timestamp: str
+
+
+class DisableAllRelaysResponse(BaseModel):
+    """Response model for disabling all relays"""
+    status: str
+    message: str
+    relays_disabled: int
+    timestamp: str
+
+
 # ============== Data Acquisition Models ==============
 
 class DAQReadRequest(BaseModel):
@@ -62,9 +109,31 @@ class DAQReadResponse(BaseModel):
     timestamp: str
 
 
-class CapacitorChargeResponse(BaseModel):
-    """Response model for capacitor charging"""
+class CapacitorDischargeRequest(BaseModel):
+    """Request model for capacitor discharging"""
+    capacitor: str = Field(
+        description="Capacitor to discharge: cs1 (48μF), cs2 (9.5μF), cs3 (1μF), or cs4 (222nF)",
+        pattern="^(cs[1-4]|CS[1-4])$"
+    )
+    discharge_resistor: str = Field(
+        default='rz2',
+        description="Discharge resistor: rz1 (3Ω), rz2 (21.7Ω - default), rz3 (357Ω), or rz4 (2.18kΩ)",
+        pattern="^(rz[1-4]|RZ[1-4])$"
+    )
+    duration: float = Field(
+        default=0.5,
+        ge=0.1,
+        le=10.0,
+        description="Discharge duration in seconds (default: 0.5, range: 0.1-10.0)"
+    )
+
+
+class CapacitorDischargeResponse(BaseModel):
+    """Response model for capacitor discharging"""
     status: str
+    capacitor: str
+    discharge_resistor: str
+    duration: float
     message: str
     timestamp: str
 
