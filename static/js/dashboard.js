@@ -102,29 +102,34 @@ function showParameterSection(circuitType) {
     const paramLs = document.getElementById('param-ls');
     const paramCs = document.getElementById('param-cs');
     const paramResistance = document.getElementById('param-resistance');
+    const paramDischarge = document.getElementById('param-discharge');
     
     // Hide all parameters first
     paramLs.style.display = 'none';
     paramCs.style.display = 'none';
     paramResistance.style.display = 'none';
+    paramDischarge.style.display = 'none';
     
     // Show parameters based on circuit type
     if (circuitType === 'rl') {
-        // RL Circuit: Inductor + Resistor (2 parameters)
+        // RL Circuit: Inductor + Resistor + Discharge Resistor
         paramLs.style.display = 'block';
         paramResistance.style.display = 'block';
-        paramGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
-    } else if (circuitType === 'rc') {
-        // RC Circuit: Capacitor + Resistor (2 parameters)
-        paramCs.style.display = 'block';
-        paramResistance.style.display = 'block';
-        paramGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
-    } else if (circuitType === 'rlc') {
-        // RLC Circuit: Inductor + Capacitor + Resistor (3 parameters)
-        paramLs.style.display = 'block';
-        paramCs.style.display = 'block';
-        paramResistance.style.display = 'block';
+        paramDischarge.style.display = 'block';
         paramGrid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+    } else if (circuitType === 'rc') {
+        // RC Circuit: Capacitor + Resistor + Discharge Resistor
+        paramCs.style.display = 'block';
+        paramResistance.style.display = 'block';
+        paramDischarge.style.display = 'block';
+        paramGrid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+    } else if (circuitType === 'rlc') {
+        // RLC Circuit: Inductor + Capacitor + Resistor + Discharge Resistor
+        paramLs.style.display = 'block';
+        paramCs.style.display = 'block';
+        paramResistance.style.display = 'block';
+        paramDischarge.style.display = 'block';
+        paramGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
     }
     
     // Show the parameter section
@@ -172,10 +177,12 @@ function hideParameterSection() {
     const selectLs = document.getElementById('select-ls');
     const selectCs = document.getElementById('select-cs');
     const selectResistance = document.getElementById('select-resistance');
+    const selectDischarge = document.getElementById('select-discharge');
     
     selectLs.value = '';
     selectCs.value = '';
     selectResistance.value = '';
+    selectDischarge.value = '';
     
     hideError(selectLs, 'error-ls');
     hideError(selectCs, 'error-cs');
@@ -500,12 +507,14 @@ function startMeasurement() {
     const selectLs = document.getElementById('select-ls');
     const selectCs = document.getElementById('select-cs');
     const selectResistance = document.getElementById('select-resistance');
+    const selectDischarge = document.getElementById('select-discharge');
     
     const selectedParams = {
         circuit: selectedCircuit,
         ls: selectLs.value || null,
         cs: selectCs.value || null,
-        resistance: selectResistance.value || null
+        resistance: selectResistance.value || null,
+        dischargeResistor: selectDischarge.value || null
     };
     
     // Save current values
@@ -789,6 +798,9 @@ function saveResultsCSV() {
     if (exportData.parameters.resistance) {
         csvContent += `Resistance,${exportData.parameters.resistance.replace('Ω', 'ohm')}\n`;
     }
+    if (exportData.parameters.dischargeResistor) {
+        csvContent += `Discharge Resistor (Rz),${exportData.parameters.dischargeResistor.replace('Ω', 'ohm')}\n`;
+    }
     csvContent += '\n';
     
     // Channels data section
@@ -845,6 +857,7 @@ function prepareExportData() {
     const selectLs = document.getElementById('select-ls');
     const selectCs = document.getElementById('select-cs');
     const selectResistance = document.getElementById('select-resistance');
+    const selectDischarge = document.getElementById('select-discharge');
     
     // Get parameter text (user-friendly display)
     const getParameterText = (selectElement) => {
@@ -885,7 +898,8 @@ function prepareExportData() {
         parameters: {
             inductance: getParameterText(selectLs),
             capacitance: getParameterText(selectCs),
-            resistance: getParameterText(selectResistance)
+            resistance: getParameterText(selectResistance),
+            dischargeResistor: getParameterText(selectDischarge) || 'Not used'
         },
         channels: channelsExport
     };

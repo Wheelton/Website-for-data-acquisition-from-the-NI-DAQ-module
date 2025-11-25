@@ -375,13 +375,14 @@ h1 {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
-    max-width: 800px;
+    max-width: 1100px;
     margin: 0 auto 45px auto;
 }
 
 .parameter-group {
     display: flex;
     flex-direction: column;
+    min-width: 0; /* Prevent grid overflow */
 }
 
 .parameter-group label {
@@ -389,6 +390,7 @@ h1 {
     font-weight: 600;
     font-size: 14px;
     margin-bottom: 8px;
+    display: block;
 }
 
 .param-select {
@@ -441,7 +443,13 @@ h1 {
 }
 
 /* Parameter section responsive */
-@media (max-width: 992px) {
+@media (min-width: 1201px) {
+    .parameter-grid {
+        gap: 18px;
+    }
+}
+
+@media (max-width: 1200px) {
     .parameter-grid {
         grid-template-columns: repeat(2, 1fr) !important;
     }
