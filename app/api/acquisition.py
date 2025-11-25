@@ -37,7 +37,7 @@ async def start_read_adc(
     """
     try:
         # Read ADC data only, no relay control
-        adc1, adc2, adc3, adc4 = acquisition_service.read_adc_only(
+        adc1, adc2, adc3, adc4 = acquisition_service.start_read_adc(
             samples_per_channel=samples,
             sample_rate=sample_rate
         )
