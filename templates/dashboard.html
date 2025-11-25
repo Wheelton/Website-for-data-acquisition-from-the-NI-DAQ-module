@@ -19,14 +19,18 @@
             <p class="subtitle">Website for Data Acquisition from NI DAQ Module</p>
         </div>
 
+        <!-- Schematic Toggle Button -->
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="toggle-btn" onclick="toggleSchematic()" style="padding: 12px 24px; font-size: 16px;">
+                <span id="toggleText">📐 Show Schematic</span>
+            </button>
+        </div>
+
         <!-- Circuit Schematic Section -->
-        <div class="schematic-section" id="schematicSection">
+        <div class="schematic-section" id="schematicSection" style="display: none;">
             <div class="schematic-toggle">
                 <button class="toggle-btn" onclick="toggleSchematicView()">
                     <span id="toggleViewText">📋 Extended View</span>
-                </button>
-                <button class="toggle-btn" onclick="toggleSchematic()">
-                    <span id="toggleText">Hide Schema</span>
                 </button>
             </div>
             <h2>📐 Circuit Schematic</h2>

@@ -361,15 +361,15 @@ function hideError(element, tooltipId) {
  * Toggle schematic diagram visibility
  */
 function toggleSchematic() {
-    const container = document.getElementById('schematicContainer');
+    const section = document.getElementById('schematicSection');
     const toggleText = document.getElementById('toggleText');
     
-    if (container.style.display === 'none') {
-        container.style.display = 'block';
-        toggleText.textContent = 'Hide Schema';
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        toggleText.textContent = '📐 Hide Schematic';
     } else {
-        container.style.display = 'none';
-        toggleText.textContent = 'Show Schema';
+        section.style.display = 'none';
+        toggleText.textContent = '📐 Show Schematic';
     }
 }
 
