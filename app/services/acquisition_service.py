@@ -32,6 +32,10 @@ class AcquisitionService:
             'rz3': 'zk2_7',  # 357 Ω (R2s3)
             'rz4': 'zk2_8',  # 2.18 kΩ (R2s4)
         }
+        
+        # Active acquisition task state
+        self._active_task = None
+        self._task_config = None
     
     def discharge_capacitor(self, capacitor: str = 'cs1', discharge_resistor: str = 'rz2', duration: float = 0.5):
         """
@@ -119,35 +123,98 @@ class AcquisitionService:
         self,
         samples_per_channel: int = 500,
         sample_rate: int = 100
-    ) -> Tuple[List[float], List[float], List[float], List[float]]:
+    ) -> dict:
         """
-        Start ADC measurement and read data from all 4 ADC channels
+        Start continuous ADC measurement from all 4 ADC channels
         
-        This method only performs data acquisition from the 4 ADC channels
-        without modifying any relay states. Use this when relays are already
-        configured externally.
+        This method configures and starts continuous data acquisition without
+        returning any data. Data collection happens in the background until
+        stop_read_adc() is called.
         
         Args:
-            samples_per_channel: Number of samples to read per channel
+            samples_per_channel: Number of samples per channel to acquire
             sample_rate: Sampling rate in Hz
             
         Returns:
-            Tuple of (adc1_data, adc2_data, adc3_data, adc4_data)
+            Dictionary with status and configuration info
+            
+        Raises:
+            RuntimeError: If acquisition is already running
         """
-        samplemode = AcquisitionType.FINITE
+        if self._active_task is not None:
+            raise RuntimeError("ADC acquisition is already running. Stop it first with stop_read_adc()")
         
-        with ni.Task() as task_ai:
-            # Configure analog input channels
-            task_ai.ai_channels.add_ai_voltage_chan(self.channels.adc['all'])
-            task_ai.timing.cfg_samp_clk_timing(
-                rate=sample_rate,
-                sample_mode=samplemode
+        # Create and configure the task
+        self._active_task = ni.Task()
+        
+        # Configure analog input channels
+        self._active_task.ai_channels.add_ai_voltage_chan(self.channels.adc['all'])
+        
+        # Configure timing for finite acquisition
+        self._active_task.timing.cfg_samp_clk_timing(
+            rate=sample_rate,
+            sample_mode=AcquisitionType.FINITE,
+            samps_per_chan=samples_per_channel
+        )
+        
+        # Start the task (begins acquisition)
+        self._active_task.start()
+        
+        # Store configuration for later reference
+        self._task_config = {
+            'samples_per_channel': samples_per_channel,
+            'sample_rate': sample_rate,
+            'channels': 4
+        }
+        
+        return {
+            'status': 'started',
+            'samples_per_channel': samples_per_channel,
+            'sample_rate': sample_rate,
+            'channels': 4
+        }
+    
+    def stop_read_adc(self) -> Tuple[List[float], List[float], List[float], List[float]]:
+        """
+        Stop ADC acquisition and return all collected data
+        
+        This method stops the running acquisition task and returns all
+        data collected from the 4 ADC channels since start_read_adc() was called.
+        
+        Returns:
+            Tuple of (adc1_data, adc2_data, adc3_data, adc4_data)
+            
+        Raises:
+            RuntimeError: If no acquisition is currently running
+        """
+        if self._active_task is None:
+            raise RuntimeError("No ADC acquisition is running. Start it first with start_read_adc()")
+        
+        try:
+            # Read all available data
+            data = self._active_task.read(
+                number_of_samples_per_channel=self._task_config['samples_per_channel']
             )
             
-            # Read data without any relay control
-            data = task_ai.read(number_of_samples_per_channel=samples_per_channel)
+            # Stop and close the task
+            self._active_task.stop()
+            self._active_task.close()
+            
+            return data[0], data[1], data[2], data[3]
+            
+        finally:
+            # Always clean up the task
+            self._active_task = None
+            self._task_config = None
+    
+    def is_acquisition_running(self) -> bool:
+        """
+        Check if ADC acquisition is currently running
         
-        return data[0], data[1], data[2], data[3]
+        Returns:
+            True if acquisition is running, False otherwise
+        """
+        return self._active_task is not None
 
 
 acquisition_service = AcquisitionService()

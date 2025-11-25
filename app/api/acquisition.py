@@ -12,40 +12,79 @@ from app.services.acquisition_service import acquisition_service
 router = APIRouter(prefix="/api", tags=["acquisition"])
 
 
-@router.post("/start-read-adc", response_model=DAQReadResponse)
+@router.post("/start-read-adc")
 async def start_read_adc(
     samples: int = Query(default=500, ge=10, le=10000, description="Number of samples per channel"),
     sample_rate: int = Query(default=100, ge=1, le=10000, description="Sampling rate in Hz")
 ):
     """
-    Start ADC measurement and read data from all 4 ADC channels
+    Start continuous ADC measurement from all 4 ADC channels
     
-    This endpoint ONLY reads ADC data without any relay control.
-    It does not charge capacitors or modify any relay states.
+    This endpoint configures and starts ADC data acquisition in the background.
+    No data is returned until stop-read-adc is called.
     
-    Use this endpoint when:
-    - Relays are already configured manually
-    - You want direct ADC readings without circuit modifications
-    - Testing ADC channels independently
+    This endpoint ONLY configures ADC - it does not control relays or charge capacitors.
+    
+    Workflow:
+    1. Call this endpoint to start acquisition
+    2. Wait for desired duration or perform other operations
+    3. Call /stop-read-adc to get all collected data
     
     Args:
-        samples: Number of samples per channel (default: 500, range: 10-10000)
+        samples: Number of samples per channel to acquire (default: 500, range: 10-10000)
         sample_rate: Sampling rate in Hz (default: 100, range: 1-10000)
         
     Returns:
-        Acquired data from all 4 ADC channels
+        Status message confirming acquisition has started
     """
     try:
-        # Read ADC data only, no relay control
-        adc1, adc2, adc3, adc4 = acquisition_service.start_read_adc(
+        result = acquisition_service.start_read_adc(
             samples_per_channel=samples,
             sample_rate=sample_rate
         )
         
+        return {
+            "status": "started",
+            "message": "ADC acquisition started successfully",
+            "samples_per_channel": result['samples_per_channel'],
+            "sample_rate": result['sample_rate'],
+            "channels": result['channels'],
+            "timestamp": datetime.now().isoformat()
+        }
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error starting ADC acquisition: {str(e)}"
+        )
+
+
+@router.post("/stop-read-adc", response_model=DAQReadResponse)
+async def stop_read_adc():
+    """
+    Stop ADC acquisition and return all collected data
+    
+    This endpoint stops the running ADC acquisition and returns all data
+    collected from the 4 ADC channels since start-read-adc was called.
+    
+    Returns:
+        All acquired data from all 4 ADC channels
+        
+    Raises:
+        409 Conflict: If no acquisition is currently running
+    """
+    try:
+        # Get config before stopping (stop_read_adc clears it)
+        config = acquisition_service._task_config.copy() if acquisition_service._task_config else {}
+        
+        # Stop and get data
+        adc1, adc2, adc3, adc4 = acquisition_service.stop_read_adc()
+        
         return DAQReadResponse(
             status="success",
-            samples=samples,
-            sample_rate=sample_rate,
+            samples=len(adc1),
+            sample_rate=config.get('sample_rate', 0),
             channels=4,
             data=DAQData(
                 adc1=adc1,
@@ -55,9 +94,29 @@ async def start_read_adc(
             ),
             timestamp=datetime.now().isoformat()
         )
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error reading ADC data: {str(e)}"
+            detail=f"Error stopping ADC acquisition: {str(e)}"
         )
+
+
+@router.get("/adc-status")
+async def get_adc_status():
+    """
+    Check if ADC acquisition is currently running
+    
+    Returns:
+        Status information about the current ADC acquisition state
+    """
+    is_running = acquisition_service.is_acquisition_running()
+    config = acquisition_service._task_config.copy() if acquisition_service._task_config else None
+    
+    return {
+        "is_running": is_running,
+        "configuration": config,
+        "timestamp": datetime.now().isoformat()
+    }
 

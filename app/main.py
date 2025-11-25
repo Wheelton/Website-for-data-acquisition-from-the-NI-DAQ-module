@@ -65,6 +65,8 @@ def create_application() -> FastAPI:
                 "disable_all_relays": "/api/relays/disable-all",
                 "disable_enabled_relays": "/api/relays/disable-enabled",
                 "start_read_adc": "/api/start-read-adc",
+                "stop_read_adc": "/api/stop-read-adc",
+                "adc_status": "/api/adc-status",
                 "discharge_capacitor": "/api/discharge-capacitor",
                 "websocket": "/ws/daq"
             }
