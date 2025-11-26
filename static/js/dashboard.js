@@ -352,7 +352,7 @@ function validateParameters() {
     
     // Validate measurement inputs
     const samplesValue = parseFloat(inputSamples.value);
-    if (!samplesValue || samplesValue < 100 || samplesValue > 100000) {
+    if (!samplesValue || samplesValue < 100 || samplesValue > 500000) {
         missingParams.push('Samples');
         showError(inputSamples, 'error-samples');
         allValid = false;
@@ -361,7 +361,7 @@ function validateParameters() {
     }
     
     const sampleRateValue = parseFloat(inputSampleRate.value);
-    if (!sampleRateValue || sampleRateValue < 1 || sampleRateValue > 100000) {
+    if (!sampleRateValue || sampleRateValue < 1 || sampleRateValue > 1000000) {
         missingParams.push('Sample Rate');
         showError(inputSampleRate, 'error-sample-rate');
         allValid = false;
