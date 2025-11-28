@@ -21,19 +21,19 @@ let measurementValues = {
 const channelMappings = {
     'rl': [
         { id: 'ch1', name: 'CH1 - Voltage across Inductor (Ls)', color: '#3b82f6' },
-        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R)', color: '#ef4444' },
-        { id: 'ch4', name: 'CH4 - Current Measurement', color: '#10b981' }
+        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R1s)', color: '#ef4444' },
+        { id: 'ch4', name: 'CH4 - Voltage across Resistor (R1r)', color: '#10b981' }
     ],
     'rc': [
         { id: 'ch3', name: 'CH3 - Voltage across Capacitor (Cs)', color: '#f59e0b' },
-        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R)', color: '#ef4444' },
-        { id: 'ch4', name: 'CH4 - Current Measurement', color: '#10b981' }
+        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R1s)', color: '#ef4444' },
+        { id: 'ch4', name: 'CH4 - Voltage across Resistor (R1r)', color: '#10b981' }
     ],
     'rlc': [
         { id: 'ch1', name: 'CH1 - Voltage across Inductor (Ls)', color: '#3b82f6' },
         { id: 'ch3', name: 'CH3 - Voltage across Capacitor (Cs)', color: '#f59e0b' },
-        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R)', color: '#ef4444' },
-        { id: 'ch4', name: 'CH4 - Current Measurement', color: '#10b981' }
+        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R1s)', color: '#ef4444' },
+        { id: 'ch4', name: 'CH4 - Voltage across Resistor (R1r)', color: '#10b981' }
     ]
 };
 
@@ -208,7 +208,14 @@ function setupParameterValidation() {
     // Add new listeners
     selectLs.addEventListener('change', validateParameters);
     selectCs.addEventListener('change', validateParameters);
-    selectResistance.addEventListener('change', validateParameters);
+    selectResistance.addEventListener('change', () => {
+        validateParameters();
+        // Reinitialize charts if results section is visible (resistor affects which channels are shown)
+        const resultsSection = document.getElementById('resultsSection');
+        if (resultsSection && resultsSection.style.display !== 'none') {
+            initializeCharts();
+        }
+    });
     
     // Add listeners for measurement inputs (for buffer warning)
     const inputSamples = document.getElementById('input-samples');
@@ -1086,7 +1093,7 @@ function hideResultsSection() {
 }
 
 /**
- * Initialize charts based on selected circuit type
+ * Initialize charts based on selected circuit type and resistor selection
  */
 function initializeCharts() {
     const chartsGrid = document.getElementById('chartsGrid');
@@ -1098,7 +1105,25 @@ function initializeCharts() {
         return;
     }
     
-    const channels = channelMappings[selectedCircuit];
+    // Get selected resistance to filter channels
+    const selectResistance = document.getElementById('select-resistance');
+    const selectedResistance = selectResistance ? selectResistance.value.toLowerCase() : '';
+    
+    // Get all channels for this circuit type
+    let channels = channelMappings[selectedCircuit];
+    
+    // Filter channels based on resistor selection:
+    // - CH2 only appears when R1s resistor is chosen
+    // - CH4 only appears when R2r resistor is chosen
+    channels = channels.filter(channel => {
+        if (channel.id === 'ch2') {
+            return selectedResistance.startsWith('r1s');
+        }
+        if (channel.id === 'ch4') {
+            return selectedResistance.startsWith('r2r');
+        }
+        return true; // Keep all other channels (CH1, CH3)
+    });
     
     channels.forEach(channel => {
         // Create chart card
