@@ -1174,7 +1174,7 @@ function initializeCharts() {
                     x: {
                         title: {
                             display: true,
-                            text: 'Time (samples)'
+                            text: 'Time (s)'
                         }
                     },
                     y: {
@@ -1196,8 +1196,12 @@ function initializeCharts() {
             }
         });
         
-        // Initialize empty data array
-        measurementData[channel.id] = [];
+        // Initialize empty data structure
+        measurementData[channel.id] = {
+            voltage: [],
+            time: [],
+            samples: []
+        };
     });
 }
 
@@ -1210,12 +1214,21 @@ function updateChart(channelId, data) {
     const chart = charts[channelId];
     if (!chart) return;
 
-    chart.data.labels = data.map((_, i) => i);
+    // Calculate time values based on sample rate
+    const sampleRate = measurementValues.sampleRate;
+    const timeStep = 1 / sampleRate; // Time between samples in seconds
+    const timeLabels = data.map((_, i) => (i * timeStep).toFixed(6)); // Time in seconds with 6 decimal precision
+    
+    chart.data.labels = timeLabels;
     chart.data.datasets[0].data = data;
     chart.update();
     
-    // Store data
-    measurementData[channelId] = data;
+    // Store data (both voltage and time information)
+    measurementData[channelId] = {
+        voltage: data,
+        time: timeLabels,
+        samples: data.map((_, i) => i)
+    };
 }
 
 /**
@@ -1395,9 +1408,9 @@ function saveResultsCSV() {
     // Get all channel IDs
     const channelIds = Object.keys(exportData.channels);
     
-    // Create header row with channel information
-    const headerRow1 = ['Sample'];
-    const headerRow2 = ['Index'];
+    // Create header row with channel information (including Time and Sample columns)
+    const headerRow1 = ['Time', 'Sample'];
+    const headerRow2 = ['(s)', 'Index'];
     
     channelIds.forEach(channelId => {
         const channel = exportData.channels[channelId];
@@ -1412,7 +1425,10 @@ function saveResultsCSV() {
     const maxLength = Math.max(...channelIds.map(id => exportData.channels[id].data.length));
     
     for (let i = 0; i < maxLength; i++) {
-        const row = [i];
+        // Get time from first channel (all channels should have same time scale)
+        const timeValue = channelIds.length > 0 ? exportData.channels[channelIds[0]].time[i] : '';
+        const row = [timeValue, i];
+        
         channelIds.forEach(channelId => {
             const value = exportData.channels[channelId].data[i];
             row.push(value !== undefined ? value : '');
@@ -1458,12 +1474,20 @@ function prepareExportData() {
     
     activeChannels.forEach(channel => {
         if (measurementData[channel.id]) {
+            const channelData = measurementData[channel.id];
+            // Handle both old format (array) and new format (object with voltage/time/samples)
+            const voltageData = channelData.voltage || channelData;
+            const timeData = channelData.time || voltageData.map((_, i) => (i / measurementValues.sampleRate).toFixed(6));
+            const samplesData = channelData.samples || voltageData.map((_, i) => i);
+            
             channelsExport[channel.id] = {
                 channelName: channel.id.toUpperCase(),
                 description: channel.name,
                 unit: 'V', // Voltage for all channels
-                dataPoints: measurementData[channel.id].length,
-                data: measurementData[channel.id]
+                dataPoints: voltageData.length,
+                data: voltageData,
+                time: timeData,
+                samples: samplesData
             };
         }
     });
