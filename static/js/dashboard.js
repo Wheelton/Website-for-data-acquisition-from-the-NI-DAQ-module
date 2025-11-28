@@ -750,6 +750,10 @@ async function startMeasurement() {
         console.log('📋 Step 3: Connecting circuit components...');
         const relaysToEnable = {};
         
+        // Always enable zs2_1 (GND) for all circuits
+        relaysToEnable['zs2_1'] = true;
+        console.log(`  Added zs2_1 (GND - required for all circuits)`);
+        
         // Add circuit-specific relay (zs1_4 for RL/RLC, zs1_2 for RC)
         const circuitSpecificRelay = componentRelayMappings.circuitSpecificRelays[selectedCircuit];
         if (circuitSpecificRelay) {
