@@ -15,8 +15,8 @@ router = APIRouter(prefix="/api", tags=["acquisition"])
 @router.post("/start-read-adc")
 async def start_read_adc(
     samples: int = Query(default=500, ge=100, le=500000, description="Number of samples per channel (or buffer size)"),
-    sample_rate: int = Query(default=100, ge=1, le=1000000, description="Sampling rate in Hz"),
-    measurement_time: float = Query(default=0, ge=0, le=10, description="Expected measurement duration in seconds (optional)")
+    sample_rate: int = Query(default=100, ge=1, le=500000, description="Sampling rate in Hz"),
+    measurement_time: float = Query(default=0, ge=0, le=20, description="Expected measurement duration in seconds (optional)")
 ):
     """
     Start continuous ADC measurement from all 4 ADC channels

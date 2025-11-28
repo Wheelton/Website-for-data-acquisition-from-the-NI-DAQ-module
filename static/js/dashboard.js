@@ -361,7 +361,7 @@ function validateParameters() {
     }
     
     const sampleRateValue = parseFloat(inputSampleRate.value);
-    if (!sampleRateValue || sampleRateValue < 1 || sampleRateValue > 1000000) {
+    if (!sampleRateValue || sampleRateValue < 1 || sampleRateValue > 500000) {
         missingParams.push('Sample Rate');
         showError(inputSampleRate, 'error-sample-rate');
         allValid = false;
@@ -370,7 +370,7 @@ function validateParameters() {
     }
     
     const measurementTimeValue = parseFloat(inputMeasurementTime.value);
-    if (!measurementTimeValue || measurementTimeValue < 0.01 || measurementTimeValue > 10) {
+    if (!measurementTimeValue || measurementTimeValue < 0.0001 || measurementTimeValue > 20) {
         missingParams.push('Measurement Time');
         showError(inputMeasurementTime, 'error-measurement-time');
         allValid = false;
@@ -750,10 +750,6 @@ async function startMeasurement() {
         console.log('📋 Step 3: Connecting circuit components...');
         const relaysToEnable = {};
         
-        // Always enable zs2_1 (GND) for all circuits
-        relaysToEnable['zs2_1'] = true;
-        console.log(`  Added zs2_1 (GND - required for all circuits)`);
-        
         // Add circuit-specific relay (zs1_4 for RL/RLC, zs1_2 for RC)
         const circuitSpecificRelay = componentRelayMappings.circuitSpecificRelays[selectedCircuit];
         if (circuitSpecificRelay) {
@@ -775,6 +771,11 @@ async function startMeasurement() {
                 relaysToEnable[rRelay] = true;
                 console.log(`  Added resistor relay: ${rRelay} (${selectedParams.resistance})`);
                 
+                // If R1s resistor is selected, enable zs2_1 (GND)
+                if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r1s')) {
+                    relaysToEnable['zs2_1'] = true;
+                    console.log(`  Added zs2_1 (GND - required for R1s resistors)`);
+                }
                 // If R2r resistor is selected, also enable zs1_3
                 if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r2r')) {
                     relaysToEnable['zs1_3'] = true;
@@ -794,6 +795,11 @@ async function startMeasurement() {
                 relaysToEnable[rRelay] = true;
                 console.log(`  Added resistor relay: ${rRelay} (${selectedParams.resistance})`);
                 
+                // If R1s resistor is selected, enable zs2_1 (GND)
+                if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r1s')) {
+                    relaysToEnable['zs2_1'] = true;
+                    console.log(`  Added zs2_1 (GND - required for R1s resistors)`);
+                }
                 // If R2r resistor is selected, also enable zs1_3
                 if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r2r')) {
                     relaysToEnable['zs1_3'] = true;
@@ -818,6 +824,11 @@ async function startMeasurement() {
                 relaysToEnable[rRelay] = true;
                 console.log(`  Added resistor relay: ${rRelay} (${selectedParams.resistance})`);
                 
+                // If R1s resistor is selected, enable zs2_1 (GND)
+                if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r1s')) {
+                    relaysToEnable['zs2_1'] = true;
+                    console.log(`  Added zs2_1 (GND - required for R1s resistors)`);
+                }
                 // If R2r resistor is selected, also enable zs1_3
                 if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r2r')) {
                     relaysToEnable['zs1_3'] = true;
