@@ -840,18 +840,8 @@ async function startMeasurement() {
             console.warn('⚠️  No relays to enable - check component mappings');
         }
         
-        // ========== STEP 4: Power the circuit (enable zs1_1) ==========
-        console.log('📋 Step 4: Powering circuit (enabling zs1_1)...');
-        response = await fetch('/api/relay/zs1_1/true', { method: 'POST' });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`Failed to enable zs1_1: ${error.detail || response.statusText}`);
-        }
-        console.log('✅ Circuit powered (zs1_1 enabled)');
-        
-        // ========== STEP 5: Start ADC acquisition ==========
-        console.log('📋 Step 5: Starting ADC acquisition...');
+        // ========== STEP 4: Start ADC acquisition ==========
+        console.log('📋 Step 4: Starting ADC acquisition...');
         const adcParams = new URLSearchParams({
             samples: measurementValues.samples,
             sample_rate: measurementValues.sampleRate,
@@ -875,6 +865,17 @@ async function startMeasurement() {
         isMeasuring = true;
         stopBtn.disabled = false;
         stopBtn.setAttribute('data-tooltip', 'Click to stop the ongoing measurement');
+
+        // ========== STEP 5: Power the circuit (enable zs1_1) ==========
+        console.log('📋 Step 5: Powering circuit (enabling zs1_1)...');
+        response = await fetch('/api/relay/zs1_1/true', { method: 'POST' });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to enable zs1_1: ${error.detail || response.statusText}`);
+        }
+        console.log('✅ Circuit powered (zs1_1 enabled)');
+        
         
         // ========== STEP 6: Wait for measurement or stop button ==========
         console.log('📊 Measurement in progress...');
