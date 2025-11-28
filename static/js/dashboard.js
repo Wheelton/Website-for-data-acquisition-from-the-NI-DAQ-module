@@ -865,8 +865,6 @@ async function startMeasurement() {
         isMeasuring = true;
         stopBtn.disabled = false;
         stopBtn.setAttribute('data-tooltip', 'Click to stop the ongoing measurement');
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // ========== STEP 5: Power the circuit (enable zs1_1) ==========
         console.log('📋 Step 5: Powering circuit (enabling zs1_1)...');
@@ -938,15 +936,29 @@ async function startMeasurement() {
 
 /**
  * Complete the measurement (called by timer or stop button)
- * Steps 7-9 of the workflow
+ * Steps 7-9 of the workflow:
+ *  - Step 7: Disable power (zs1_1) BEFORE stopping ADC to capture power-down transient
+ *  - Step 8: Stop ADC and retrieve data
+ *  - Step 9: Disable all other relays
  */
 async function completeMeasurement() {
     console.log('📋 Completing measurement...');
     
     try {
-        // ========== STEP 7: Stop ADC and get data ==========
-        console.log('📋 Step 7: Stopping ADC and retrieving data...');
-        let response = await fetch('/api/stop-read-adc', {
+        // ========== STEP 7: Disable circuit power (zs1_1) BEFORE stopping ADC ==========
+        // This allows ADC to capture the power-down transient behavior
+        console.log('📋 Step 7: Disabling circuit power (zs1_1)...');
+        let response = await fetch('/api/relay/zs1_1/false', { method: 'POST' });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to disable zs1_1: ${error.detail || response.statusText}`);
+        }
+        console.log('✅ Circuit power disabled');
+        
+        // ========== STEP 8: Stop ADC and get data ==========
+        console.log('📋 Step 8: Stopping ADC and retrieving data...');
+        response = await fetch('/api/stop-read-adc', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -963,16 +975,6 @@ async function completeMeasurement() {
         // Update charts with data
         updateChartsWithData(result.data);
         
-        // ========== STEP 8: Disable circuit power (zs1_1) ==========
-        console.log('📋 Step 8: Disabling circuit power (zs1_1)...');
-        response = await fetch('/api/relay/zs1_1/false', { method: 'POST' });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`Failed to disable zs1_1: ${error.detail || response.statusText}`);
-        }
-        console.log('✅ Circuit power disabled');
-        
         // ========== STEP 9: Disable all enabled relays ==========
         console.log('📋 Step 9: Disabling all enabled relays...');
         response = await fetch('/api/relays/disable-enabled', { method: 'POST' });
@@ -985,6 +987,7 @@ async function completeMeasurement() {
         
         // ========== SUCCESS ==========
         console.log('✅ Measurement completed successfully!');
+        console.log('📋 Measurement workflow: ADC started → Circuit powered → Power removed → ADC stopped');
         showSuccessDialog('Measurement Complete', 'The measurement has been completed successfully. Data is now displayed in the charts below.');
         
     } catch (error) {
