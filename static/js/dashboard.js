@@ -866,6 +866,8 @@ async function startMeasurement() {
         stopBtn.disabled = false;
         stopBtn.setAttribute('data-tooltip', 'Click to stop the ongoing measurement');
 
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // ========== STEP 5: Power the circuit (enable zs1_1) ==========
         console.log('📋 Step 5: Powering circuit (enabling zs1_1)...');
         response = await fetch('/api/relay/zs1_1/true', { method: 'POST' });
