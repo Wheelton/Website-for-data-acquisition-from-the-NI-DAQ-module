@@ -251,6 +251,57 @@ async def disable_enabled_relays():
         )
 
 
+@router.post("/relays/sync-with-hardware", response_model=AllRelayStatesResponse)
+async def sync_relays_with_hardware():
+    """
+    Synchronize internal relay states with actual hardware states
+    
+    This endpoint reads the actual state of all 56 relays from the hardware
+    and updates the internal state tracking. Useful for:
+    - Application startup to detect relays left ON
+    - After external hardware changes
+    - Verifying state consistency
+    
+    Returns:
+        Current state of all relays read directly from hardware
+    """
+    try:
+        hardware_states = relay_service.sync_with_hardware()
+        
+        # Build detailed relay state list
+        relay_list = []
+        for relay_name, state in hardware_states.items():
+            # Extract module name (e.g., 'zs1' from 'zs1_1')
+            module = relay_name.split('_')[0].upper()
+            channel = relay_service.relay_mapping.get_channel(relay_name)
+            
+            relay_list.append(
+                RelayState(
+                    name=relay_name,
+                    channel=channel,
+                    state=state,
+                    module=module
+                )
+            )
+        
+        # Count enabled and disabled relays
+        enabled_count = sum(1 for state in hardware_states.values() if state)
+        disabled_count = len(hardware_states) - enabled_count
+        
+        return AllRelayStatesResponse(
+            total_relays=len(hardware_states),
+            enabled_count=enabled_count,
+            disabled_count=disabled_count,
+            relays=relay_list,
+            timestamp=datetime.now().isoformat()
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error syncing relay states with hardware: {str(e)}"
+        )
+
+
 @router.post("/discharge-capacitor", response_model=CapacitorDischargeResponse)
 async def discharge_capacitor(request: CapacitorDischargeRequest):
     """

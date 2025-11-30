@@ -60,3 +60,4 @@ dmypy.json
 *.docx
 test_output/
 data_output/
+lab_soft_1/

@@ -21,19 +21,19 @@ let measurementValues = {
 const channelMappings = {
     'rl': [
         { id: 'ch1', name: 'CH1 - Voltage across Inductor (Ls)', color: '#3b82f6' },
-        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R)', color: '#ef4444' },
-        { id: 'ch4', name: 'CH4 - Current Measurement', color: '#10b981' }
+        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R1s)', color: '#ef4444' },
+        { id: 'ch4', name: 'CH4 - Voltage across Resistor (R1r)', color: '#10b981' }
     ],
     'rc': [
         { id: 'ch3', name: 'CH3 - Voltage across Capacitor (Cs)', color: '#f59e0b' },
-        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R)', color: '#ef4444' },
-        { id: 'ch4', name: 'CH4 - Current Measurement', color: '#10b981' }
+        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R1s)', color: '#ef4444' },
+        { id: 'ch4', name: 'CH4 - Voltage across Resistor (R1r)', color: '#10b981' }
     ],
     'rlc': [
         { id: 'ch1', name: 'CH1 - Voltage across Inductor (Ls)', color: '#3b82f6' },
         { id: 'ch3', name: 'CH3 - Voltage across Capacitor (Cs)', color: '#f59e0b' },
-        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R)', color: '#ef4444' },
-        { id: 'ch4', name: 'CH4 - Current Measurement', color: '#10b981' }
+        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R1s)', color: '#ef4444' },
+        { id: 'ch4', name: 'CH4 - Voltage across Resistor (R1r)', color: '#10b981' }
     ]
 };
 
@@ -208,7 +208,14 @@ function setupParameterValidation() {
     // Add new listeners
     selectLs.addEventListener('change', validateParameters);
     selectCs.addEventListener('change', validateParameters);
-    selectResistance.addEventListener('change', validateParameters);
+    selectResistance.addEventListener('change', () => {
+        validateParameters();
+        // Reinitialize charts if results section is visible (resistor affects which channels are shown)
+        const resultsSection = document.getElementById('resultsSection');
+        if (resultsSection && resultsSection.style.display !== 'none') {
+            initializeCharts();
+        }
+    });
     
     // Add listeners for measurement inputs (for buffer warning)
     const inputSamples = document.getElementById('input-samples');
@@ -352,7 +359,7 @@ function validateParameters() {
     
     // Validate measurement inputs
     const samplesValue = parseFloat(inputSamples.value);
-    if (!samplesValue || samplesValue < 100 || samplesValue > 100000) {
+    if (!samplesValue || samplesValue < 100 || samplesValue > 500000) {
         missingParams.push('Samples');
         showError(inputSamples, 'error-samples');
         allValid = false;
@@ -361,7 +368,7 @@ function validateParameters() {
     }
     
     const sampleRateValue = parseFloat(inputSampleRate.value);
-    if (!sampleRateValue || sampleRateValue < 1 || sampleRateValue > 100000) {
+    if (!sampleRateValue || sampleRateValue < 1 || sampleRateValue > 500000) {
         missingParams.push('Sample Rate');
         showError(inputSampleRate, 'error-sample-rate');
         allValid = false;
@@ -370,7 +377,7 @@ function validateParameters() {
     }
     
     const measurementTimeValue = parseFloat(inputMeasurementTime.value);
-    if (!measurementTimeValue || measurementTimeValue < 0.01 || measurementTimeValue > 10) {
+    if (!measurementTimeValue || measurementTimeValue < 0.0001 || measurementTimeValue > 20) {
         missingParams.push('Measurement Time');
         showError(inputMeasurementTime, 'error-measurement-time');
         allValid = false;
@@ -553,12 +560,106 @@ function saveMeasurementValues() {
     measurementValues.measurementTime = parseFloat(document.getElementById('input-measurement-time').value) || 5;
 }
 
+// ============== Component to Relay Mappings ==============
+
 /**
- * Start measurement
+ * Component to relay mappings
+ * Maps circuit component selections to their corresponding relay names
  */
-function startMeasurement() {
+const componentRelayMappings = {
+    // Inductor (Ls) mappings - UPDATE THESE WITH CORRECT RELAY NAMES
+    inductors: {
+        'ls1': 'zk1_1',  // 1/0.5 [mH/Ω]
+        'ls2': 'zk1_2',  // 10/2.5 [mH/Ω]
+        'ls3': 'zk1_3',  // 75.6/50.1 [mH/Ω]
+        'ls4': 'zk1_4'   // ~0.6/1 [H/Ω]
+    },
+    
+    // Capacitor (Cs) mappings - VERIFIED FROM BACKEND
+    capacitors: {
+        'cs1': 'zk2_1',  // 48 μF
+        'cs2': 'zk2_2',  // 9.5 μF
+        'cs3': 'zk2_3',  // 1 μF
+        'cs4': 'zk2_4'   // 222 nF
+    },
+    
+    // Resistor (R1s) mappings - UPDATE THESE WITH CORRECT RELAY NAMES
+    resistorsR1s: {
+        'r1s1': 'zk1_5',  // 4.9 Ω
+        'r1s2': 'zk1_6',  // 56.8 Ω
+        'r1s3': 'zk1_7',  // 739 Ω
+        'r1s4': 'zk1_8'   // 26.9 kΩ
+    },
+    
+    // Resistor (R2r) mappings - UPDATE THESE WITH CORRECT RELAY NAMES
+    resistorsR2r: {
+        'r2r1': 'zk4_1',  // 14.9 Ω
+        'r2r2': 'zk4_2',  // 32.9 Ω
+        'r2r3': 'zk4_3',  // 4.91 kΩ
+        'r2r4': 'zk4_4'   // 47.4 kΩ
+    },
+    
+    // Discharge resistor mappings - VERIFIED FROM BACKEND
+    dischargeResistors: {
+        'rz1': 'zk2_5',  // 3 Ω (R2s1)
+        'rz2': 'zk2_6',  // 21.7 Ω (R2s2) - DEFAULT
+        'rz3': 'zk2_7',  // 357 Ω (R2s3)
+        'rz4': 'zk2_8'   // 2.18 kΩ (R2s4)
+    },
+    
+    // Circuit-specific additional relays
+    circuitSpecificRelays: {
+        'rl': 'zs1_4',   // Enable zs1_4 for LR circuits
+        'rc': 'zs1_2',   // Enable zs1_2 for RC circuits
+        'rlc': 'zs1_4'   // Enable zs1_4 for RLC circuits (same as RL)
+    }
+};
+
+/**
+ * Get relay name for a component selection
+ * @param {string} component - Component identifier (e.g., 'ls1', 'cs2', 'r1s3')
+ * @returns {string|null} Relay name or null if not found
+ */
+function getRelayForComponent(component) {
+    if (!component) return null;
+    
+    const lower = component.toLowerCase();
+    
+    // Check inductors
+    if (lower.startsWith('ls')) {
+        return componentRelayMappings.inductors[lower] || null;
+    }
+    
+    // Check capacitors
+    if (lower.startsWith('cs')) {
+        return componentRelayMappings.capacitors[lower] || null;
+    }
+    
+    // Check R1s resistors
+    if (lower.startsWith('r1s')) {
+        return componentRelayMappings.resistorsR1s[lower] || null;
+    }
+    
+    // Check R2r resistors
+    if (lower.startsWith('r2r')) {
+        return componentRelayMappings.resistorsR2r[lower] || null;
+    }
+    
+    // Check discharge resistors
+    if (lower.startsWith('rz')) {
+        return componentRelayMappings.dischargeResistors[lower] || null;
+    }
+    
+    return null;
+}
+
+/**
+ * Start measurement with complete workflow
+ * Implements the full measurement sequence as specified in requirements
+ */
+async function startMeasurement() {
     if (!selectedCircuit) {
-        alert('Please select a circuit first');
+        showErrorDialog('Error', 'Please select a circuit first');
         return;
     }
     
@@ -573,60 +674,404 @@ function startMeasurement() {
         ls: selectLs.value || null,
         cs: selectCs.value || null,
         resistance: selectResistance.value || null,
-        dischargeResistor: selectDischarge.value || null
+        dischargeResistor: selectDischarge.value || 'rz2'  // Default to rz2 if not specified
     };
     
     // Save current values
     saveMeasurementValues();
     
-    // Update button states
-    isMeasuring = true;
+    // Update button states - disable start button immediately
     const startBtn = document.getElementById('btnStartMeasurement');
     const stopBtn = document.getElementById('btnStopMeasurement');
     
     startBtn.disabled = true;
-    startBtn.setAttribute('data-tooltip', 'Measurement in progress...');
+    startBtn.setAttribute('data-tooltip', 'Measurement workflow in progress...');
     
-    stopBtn.disabled = false;
-    stopBtn.setAttribute('data-tooltip', 'Click to stop the ongoing measurement');
+    // Keep stop button disabled until ADC is started
+    stopBtn.disabled = true;
+    stopBtn.setAttribute('data-tooltip', 'Waiting for measurement to start...');
     
     // Show results section and initialize charts
     showResultsSection();
     initializeCharts();
     
-    console.log('Starting measurement...', {
+    console.log('🚀 Starting measurement workflow...', {
         ...selectedParams,
         samples: measurementValues.samples,
         sampleRate: measurementValues.sampleRate,
         measurementTime: measurementValues.measurementTime
     });
     
-    // Scroll to results section
-    setTimeout(() => {
-        const resultsSection = document.getElementById('resultsSection');
-        if (resultsSection) {
-            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    try {
+        // ========== STEP 1: Disable any enabled relays (twice) ==========
+        console.log('📋 Step 1: Disabling all enabled relays (pass 1)...');
+        let response = await fetch('/api/relays/disable-enabled', { method: 'POST' });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to disable relays (pass 1): ${error.detail || response.statusText}`);
         }
-    }, 200);
-    
-    // Start ADC acquisition via backend API
-    startAdcAcquisition();
+        console.log('✅ Pass 1 complete');
+        
+        console.log('📋 Step 1: Disabling all enabled relays (pass 2)...');
+        response = await fetch('/api/relays/disable-enabled', { method: 'POST' });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to disable relays (pass 2): ${error.detail || response.statusText}`);
+        }
+        console.log('✅ Pass 2 complete');
+        
+        // ========== STEP 2: Discharge all capacitors ==========
+        console.log('📋 Step 2: Discharging all capacitors...');
+        const capacitorsToDischarge = ['cs1', 'cs2', 'cs3', 'cs4'];
+        const chosenCapacitor = selectedParams.cs;
+        const dischargeResistor = selectedParams.dischargeResistor;
+        
+        for (const capacitor of capacitorsToDischarge) {
+            // Use the chosen discharge resistor for the chosen capacitor, or zk2_6 (rz2) for others
+            const resistor = (capacitor === chosenCapacitor && dischargeResistor) 
+                ? dischargeResistor 
+                : 'rz2';
+            
+            console.log(`  Discharging ${capacitor.toUpperCase()} through ${resistor.toUpperCase()}...`);
+            
+            response = await fetch('/api/discharge-capacitor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    capacitor: capacitor,
+                    discharge_resistor: resistor,
+                    duration: 0.2
+                })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(`Failed to discharge ${capacitor}: ${error.detail || response.statusText}`);
+            }
+            
+            console.log(`  ✅ ${capacitor.toUpperCase()} discharged`);
+        }
+        console.log('✅ All capacitors discharged');
+        
+        // ========== STEP 3: Connect chosen circuit ==========
+        console.log('📋 Step 3: Connecting circuit components...');
+        const relaysToEnable = {};
+        
+        // Add circuit-specific relay (zs1_4 for RL/RLC, zs1_2 for RC)
+        const circuitSpecificRelay = componentRelayMappings.circuitSpecificRelays[selectedCircuit];
+        if (circuitSpecificRelay) {
+            relaysToEnable[circuitSpecificRelay] = true;
+            console.log(`  Added circuit-specific relay: ${circuitSpecificRelay}`);
+        }
+        
+        // Add component relays based on circuit type
+        if (selectedCircuit === 'rl') {
+            // RL Circuit: Inductor + Resistor
+            const lsRelay = getRelayForComponent(selectedParams.ls);
+            const rRelay = getRelayForComponent(selectedParams.resistance);
+            
+            if (lsRelay) {
+                relaysToEnable[lsRelay] = true;
+                console.log(`  Added inductor relay: ${lsRelay} (${selectedParams.ls})`);
+            }
+            if (rRelay) {
+                relaysToEnable[rRelay] = true;
+                console.log(`  Added resistor relay: ${rRelay} (${selectedParams.resistance})`);
+                
+                // If R1s resistor is selected, enable zs2_1 (GND)
+                if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r1s')) {
+                    relaysToEnable['zs2_1'] = true;
+                    console.log(`  Added zs2_1 (GND - required for R1s resistors)`);
+                }
+                // If R2r resistor is selected, also enable zs1_3
+                if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r2r')) {
+                    relaysToEnable['zs1_3'] = true;
+                    console.log(`  Added zs1_3 (required for R2r resistors)`);
+                }
+            }
+        } else if (selectedCircuit === 'rc') {
+            // RC Circuit: Capacitor + Resistor
+            const csRelay = getRelayForComponent(selectedParams.cs);
+            const rRelay = getRelayForComponent(selectedParams.resistance);
+            
+            if (csRelay) {
+                relaysToEnable[csRelay] = true;
+                console.log(`  Added capacitor relay: ${csRelay} (${selectedParams.cs})`);
+            }
+            if (rRelay) {
+                relaysToEnable[rRelay] = true;
+                console.log(`  Added resistor relay: ${rRelay} (${selectedParams.resistance})`);
+                
+                // If R1s resistor is selected, enable zs2_1 (GND)
+                if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r1s')) {
+                    relaysToEnable['zs2_1'] = true;
+                    console.log(`  Added zs2_1 (GND - required for R1s resistors)`);
+                }
+                // If R2r resistor is selected, also enable zs1_3
+                if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r2r')) {
+                    relaysToEnable['zs1_3'] = true;
+                    console.log(`  Added zs1_3 (required for R2r resistors)`);
+                }
+            }
+        } else if (selectedCircuit === 'rlc') {
+            // RLC Circuit: Inductor + Capacitor + Resistor
+            const lsRelay = getRelayForComponent(selectedParams.ls);
+            const csRelay = getRelayForComponent(selectedParams.cs);
+            const rRelay = getRelayForComponent(selectedParams.resistance);
+            
+            if (lsRelay) {
+                relaysToEnable[lsRelay] = true;
+                console.log(`  Added inductor relay: ${lsRelay} (${selectedParams.ls})`);
+            }
+            if (csRelay) {
+                relaysToEnable[csRelay] = true;
+                console.log(`  Added capacitor relay: ${csRelay} (${selectedParams.cs})`);
+            }
+            if (rRelay) {
+                relaysToEnable[rRelay] = true;
+                console.log(`  Added resistor relay: ${rRelay} (${selectedParams.resistance})`);
+                
+                // If R1s resistor is selected, enable zs2_1 (GND)
+                if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r1s')) {
+                    relaysToEnable['zs2_1'] = true;
+                    console.log(`  Added zs2_1 (GND - required for R1s resistors)`);
+                }
+                // If R2r resistor is selected, also enable zs1_3
+                if (selectedParams.resistance && selectedParams.resistance.toLowerCase().startsWith('r2r')) {
+                    relaysToEnable['zs1_3'] = true;
+                    console.log(`  Added zs1_3 (required for R2r resistors)`);
+                }
+            }
+        }
+        
+        // Enable all circuit relays
+        if (Object.keys(relaysToEnable).length > 0) {
+            console.log(`  Enabling ${Object.keys(relaysToEnable).length} relay(s)...`);
+            response = await fetch('/api/relays/multiple', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ relay_states: relaysToEnable })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(`Failed to enable circuit relays: ${error.detail || response.statusText}`);
+            }
+            console.log('✅ Circuit relays enabled');
+        } else {
+            console.warn('⚠️  No relays to enable - check component mappings');
+        }
+        
+        // ========== STEP 4: Start ADC acquisition ==========
+        console.log('📋 Step 4: Starting ADC acquisition...');
+        const adcParams = new URLSearchParams({
+            samples: measurementValues.samples,
+            sample_rate: measurementValues.sampleRate,
+            measurement_time: measurementValues.measurementTime || 0
+        });
+        
+        response = await fetch(`/api/start-read-adc?${adcParams}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to start ADC: ${error.detail || response.statusText}`);
+        }
+        
+        const adcResult = await response.json();
+        console.log('✅ ADC acquisition started:', adcResult);
+        
+        // NOW enable stop button since ADC is running
+        isMeasuring = true;
+        stopBtn.disabled = false;
+        stopBtn.setAttribute('data-tooltip', 'Click to stop the ongoing measurement');
+        
+        // ========== STEP 5: Power the circuit (enable zs1_1) ==========
+        console.log('📋 Step 5: Powering circuit (enabling zs1_1)...');
+        response = await fetch('/api/relay/zs1_1/true', { method: 'POST' });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to enable zs1_1: ${error.detail || response.statusText}`);
+        }
+        console.log('✅ Circuit powered (zs1_1 enabled)');
+        
+        
+        // ========== STEP 6: Wait for measurement or stop button ==========
+        console.log('📊 Measurement in progress...');
+        console.log(`⏱️  Waiting for ${measurementValues.measurementTime}s or stop button click...`);
+        
+        // Scroll to results section
+        setTimeout(() => {
+            const resultsSection = document.getElementById('resultsSection');
+            if (resultsSection) {
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 200);
+        
+        // Set up automatic stop timer if measurement time is specified
+        if (measurementValues.measurementTime > 0) {
+            measurementTimer = setTimeout(async () => {
+                console.log('⏱️  Measurement time elapsed, stopping automatically...');
+                await completeMeasurement();
+            }, measurementValues.measurementTime * 1000);
+        }
+        
+    } catch (error) {
+        console.error('❌ Measurement workflow error:', error);
+        
+        // Try to clean up on error
+        try {
+            // Try to stop ADC if it was started
+            if (isMeasuring) {
+                try {
+                    await fetch('/api/stop-read-adc', { method: 'POST' });
+                } catch (e) {
+                    // Ignore if ADC wasn't running
+                }
+            }
+            // Always try to disable relays
+            await fetch('/api/relays/disable-enabled', { method: 'POST' });
+        } catch (cleanupError) {
+            console.error('Error during cleanup:', cleanupError);
+        }
+        
+        // Reset state
+        isMeasuring = false;
+        if (measurementTimer) {
+            clearTimeout(measurementTimer);
+            measurementTimer = null;
+        }
+        
+        // Reset button states
+        startBtn.disabled = false;
+        startBtn.setAttribute('data-tooltip', 'Ready to start measurement');
+        stopBtn.disabled = true;
+        stopBtn.setAttribute('data-tooltip', 'No active measurement to stop');
+        
+        // Show error to user
+        showErrorDialog('Measurement Error', error.message || String(error));
+    }
 }
 
 /**
- * Stop measurement
+ * Complete the measurement (called by timer or stop button)
+ * Steps 7-9 of the workflow:
+ *  - Step 7: Disable power (zs1_1) BEFORE stopping ADC to capture power-down transient
+ *  - Step 8: Stop ADC and retrieve data
+ *  - Step 9: Disable all other relays
  */
-function stopMeasurement() {
+async function completeMeasurement() {
+    console.log('📋 Completing measurement...');
+    
+    try {
+        // ========== STEP 7: Disable circuit power (zs1_1) BEFORE stopping ADC ==========
+        // This allows ADC to capture the power-down transient behavior
+        console.log('📋 Step 7: Disabling circuit power (zs1_1)...');
+        let response = await fetch('/api/relay/zs1_1/false', { method: 'POST' });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to disable zs1_1: ${error.detail || response.statusText}`);
+        }
+        console.log('✅ Circuit power disabled');
+        
+        // ========== STEP 8: Stop ADC and get data ==========
+        console.log('📋 Step 8: Stopping ADC and retrieving data...');
+        response = await fetch('/api/stop-read-adc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to stop ADC: ${error.detail || response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ ADC stopped, data received:', result);
+        console.log(`📊 Received ${result.samples} samples from ${result.channels} channels`);
+        
+        // Update charts with data
+        updateChartsWithData(result.data);
+        
+        // ========== STEP 9: Disable all enabled relays ==========
+        console.log('📋 Step 9: Disabling all enabled relays...');
+        response = await fetch('/api/relays/disable-enabled', { method: 'POST' });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to disable relays: ${error.detail || response.statusText}`);
+        }
+        console.log('✅ All relays disabled');
+        
+        // ========== SUCCESS ==========
+        console.log('✅ Measurement completed successfully!');
+        console.log('📋 Measurement workflow: ADC started → Circuit powered → Power removed → ADC stopped');
+        showSuccessDialog('Measurement Complete', 'The measurement has been completed successfully. Data is now displayed in the charts below.');
+        
+    } catch (error) {
+        console.error('❌ Error completing measurement:', error);
+        showErrorDialog('Completion Error', error.message || String(error));
+    } finally {
+        // Always reset state
+        isMeasuring = false;
+        if (measurementTimer) {
+            clearTimeout(measurementTimer);
+            measurementTimer = null;
+        }
+        
+        // Reset button states
+        const startBtn = document.getElementById('btnStartMeasurement');
+        const stopBtn = document.getElementById('btnStopMeasurement');
+        
+        stopBtn.disabled = true;
+        stopBtn.setAttribute('data-tooltip', 'No active measurement to stop');
+        
+        // Re-validate to enable start button if parameters are valid
+        validateParameters();
+    }
+}
+
+/**
+ * Stop measurement (user-triggered)
+ */
+async function stopMeasurement() {
+    if (!isMeasuring) {
+        console.warn('No measurement is currently running');
+        return;
+    }
+    
+    console.log('🛑 User requested measurement stop...');
+    
     // Clear automatic stop timer
     if (measurementTimer) {
         clearTimeout(measurementTimer);
         measurementTimer = null;
     }
     
-    console.log('Stopping measurement...');
-    
-    // Stop ADC acquisition and get data via backend API
-    stopAdcAcquisition();
+    // Complete the measurement workflow
+    await completeMeasurement();
+}
+
+/**
+ * Show error dialog
+ * @param {string} title - Dialog title
+ * @param {string} message - Error message
+ */
+function showErrorDialog(title, message) {
+    alert(`❌ ${title}\n\n${message}\n\nPlease review the console for more details.`);
+}
+
+/**
+ * Show success dialog
+ * @param {string} title - Dialog title
+ * @param {string} message - Success message
+ */
+function showSuccessDialog(title, message) {
+    alert(`✅ ${title}\n\n${message}`);
 }
 
 // ============== Results Section ==============
@@ -648,7 +1093,7 @@ function hideResultsSection() {
 }
 
 /**
- * Initialize charts based on selected circuit type
+ * Initialize charts based on selected circuit type and resistor selection
  */
 function initializeCharts() {
     const chartsGrid = document.getElementById('chartsGrid');
@@ -660,7 +1105,25 @@ function initializeCharts() {
         return;
     }
     
-    const channels = channelMappings[selectedCircuit];
+    // Get selected resistance to filter channels
+    const selectResistance = document.getElementById('select-resistance');
+    const selectedResistance = selectResistance ? selectResistance.value.toLowerCase() : '';
+    
+    // Get all channels for this circuit type
+    let channels = channelMappings[selectedCircuit];
+    
+    // Filter channels based on resistor selection:
+    // - CH2 only appears when R1s resistor is chosen
+    // - CH4 only appears when R2r resistor is chosen
+    channels = channels.filter(channel => {
+        if (channel.id === 'ch2') {
+            return selectedResistance.startsWith('r1s');
+        }
+        if (channel.id === 'ch4') {
+            return selectedResistance.startsWith('r2r');
+        }
+        return true; // Keep all other channels (CH1, CH3)
+    });
     
     channels.forEach(channel => {
         // Create chart card
@@ -711,7 +1174,7 @@ function initializeCharts() {
                     x: {
                         title: {
                             display: true,
-                            text: 'Time (samples)'
+                            text: 'Time (s)'
                         }
                     },
                     y: {
@@ -733,8 +1196,12 @@ function initializeCharts() {
             }
         });
         
-        // Initialize empty data array
-        measurementData[channel.id] = [];
+        // Initialize empty data structure
+        measurementData[channel.id] = {
+            voltage: [],
+            time: [],
+            samples: []
+        };
     });
 }
 
@@ -747,12 +1214,21 @@ function updateChart(channelId, data) {
     const chart = charts[channelId];
     if (!chart) return;
 
-    chart.data.labels = data.map((_, i) => i);
+    // Calculate time values based on sample rate
+    const sampleRate = measurementValues.sampleRate;
+    const timeStep = 1 / sampleRate; // Time between samples in seconds
+    const timeLabels = data.map((_, i) => (i * timeStep).toFixed(6)); // Time in seconds with 6 decimal precision
+    
+    chart.data.labels = timeLabels;
     chart.data.datasets[0].data = data;
     chart.update();
     
-    // Store data
-    measurementData[channelId] = data;
+    // Store data (both voltage and time information)
+    measurementData[channelId] = {
+        voltage: data,
+        time: timeLabels,
+        samples: data.map((_, i) => i)
+    };
 }
 
 /**
@@ -786,108 +1262,19 @@ async function syncMeasurementState() {
 }
 
 /**
- * Start ADC acquisition via backend API
+ * Legacy function kept for backwards compatibility
+ * NOTE: The main measurement workflow is now in startMeasurement()
  */
 async function startAdcAcquisition() {
-    try {
-        const params = new URLSearchParams({
-            samples: measurementValues.samples,
-            sample_rate: measurementValues.sampleRate,
-            measurement_time: measurementValues.measurementTime || 0
-        });
-        
-        const response = await fetch(`/api/start-read-adc?${params}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Failed to start ADC acquisition');
-        }
-        
-        const result = await response.json();
-        console.log('ADC acquisition started:', result);
-        if (result.buffer_size) {
-            console.log(`Buffer size: ${result.buffer_size} samples (for ${measurementValues.measurementTime}s at ${measurementValues.sampleRate} Hz)`);
-}
-
-        // Set up automatic stop timer if measurement time is specified
-        if (measurementValues.measurementTime > 0) {
-            measurementTimer = setTimeout(() => {
-                console.log('Measurement time elapsed, stopping automatically...');
-                stopMeasurement();
-            }, measurementValues.measurementTime * 1000);
-        }
-        
-    } catch (error) {
-        console.error('Error starting ADC acquisition:', error);
-        alert(`Failed to start measurement: ${error.message}\n\nPlease try again.`);
-        
-        // Reset button states on error
-        isMeasuring = false;
-        validateParameters();
-        
-        // Sync with backend to ensure clean state
-        await syncMeasurementState();
-    }
+    console.warn('startAdcAcquisition() is deprecated. Use startMeasurement() instead.');
 }
 
 /**
- * Stop ADC acquisition and get data via backend API
+ * Legacy function kept for backwards compatibility
+ * NOTE: The main measurement workflow is now in startMeasurement() and completeMeasurement()
  */
 async function stopAdcAcquisition() {
-    // Clear automatic stop timer
-    if (measurementTimer) {
-        clearTimeout(measurementTimer);
-        measurementTimer = null;
-    }
-    
-    try {
-        const response = await fetch('/api/stop-read-adc', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Failed to stop ADC acquisition');
-        }
-        
-        const result = await response.json();
-        console.log('ADC acquisition stopped, data received:', result);
-        console.log(`Received ${result.samples} samples from ${result.channels} channels`);
-        
-        // Update charts with real data from backend
-        updateChartsWithData(result.data);
-        
-        // Update button states
-        isMeasuring = false;
-        const stopBtn = document.getElementById('btnStopMeasurement');
-        
-        stopBtn.disabled = true;
-        stopBtn.setAttribute('data-tooltip', 'No active measurement to stop');
-        
-        // Revalidate parameters to update start button state
-        validateParameters();
-        
-    } catch (error) {
-        console.error('Error stopping ADC acquisition:', error);
-        alert(`Failed to stop measurement: ${error.message}\n\nThe measurement state has been reset. You can start a new measurement.`);
-        
-        // Reset button states on error
-        isMeasuring = false;
-        const stopBtn = document.getElementById('btnStopMeasurement');
-        stopBtn.disabled = false;
-        validateParameters();
-        
-        // Sync with backend to ensure clean state
-        await syncMeasurementState();
-    }
+    console.warn('stopAdcAcquisition() is deprecated. Use stopMeasurement() instead.');
 }
 
 /**
@@ -1021,9 +1408,9 @@ function saveResultsCSV() {
     // Get all channel IDs
     const channelIds = Object.keys(exportData.channels);
     
-    // Create header row with channel information
-    const headerRow1 = ['Sample'];
-    const headerRow2 = ['Index'];
+    // Create header row with channel information (including Time and Sample columns)
+    const headerRow1 = ['Time', 'Sample'];
+    const headerRow2 = ['(s)', 'Index'];
     
     channelIds.forEach(channelId => {
         const channel = exportData.channels[channelId];
@@ -1038,7 +1425,10 @@ function saveResultsCSV() {
     const maxLength = Math.max(...channelIds.map(id => exportData.channels[id].data.length));
     
     for (let i = 0; i < maxLength; i++) {
-        const row = [i];
+        // Get time from first channel (all channels should have same time scale)
+        const timeValue = channelIds.length > 0 ? exportData.channels[channelIds[0]].time[i] : '';
+        const row = [timeValue, i];
+        
         channelIds.forEach(channelId => {
             const value = exportData.channels[channelId].data[i];
             row.push(value !== undefined ? value : '');
@@ -1084,12 +1474,20 @@ function prepareExportData() {
     
     activeChannels.forEach(channel => {
         if (measurementData[channel.id]) {
+            const channelData = measurementData[channel.id];
+            // Handle both old format (array) and new format (object with voltage/time/samples)
+            const voltageData = channelData.voltage || channelData;
+            const timeData = channelData.time || voltageData.map((_, i) => (i / measurementValues.sampleRate).toFixed(6));
+            const samplesData = channelData.samples || voltageData.map((_, i) => i);
+            
             channelsExport[channel.id] = {
                 channelName: channel.id.toUpperCase(),
                 description: channel.name,
                 unit: 'V', // Voltage for all channels
-                dataPoints: measurementData[channel.id].length,
-                data: measurementData[channel.id]
+                dataPoints: voltageData.length,
+                data: voltageData,
+                time: timeData,
+                samples: samplesData
             };
         }
     });
