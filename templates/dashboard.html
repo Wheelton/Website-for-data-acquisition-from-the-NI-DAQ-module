@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-en="NI DAQ Control Dashboard" data-pl="Panel Sterowania NI DAQ">NI DAQ Control Dashboard</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔌</text></svg>">
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="/static/css/dashboard.css?v=18">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="language-switcher">
+                <button class="lang-btn active" onclick="switchLanguage('en')" id="lang-en">EN</button>
+                <button class="lang-btn" onclick="switchLanguage('pl')" id="lang-pl">PL</button>
+            </div>
+            <h1 data-en="🔌 NI DAQ Control Dashboard" data-pl="🔌 Panel Sterowania NI DAQ">🔌 NI DAQ Control Dashboard</h1>
+            <p class="subtitle" data-en="Website for Data Acquisition from NI DAQ Module" data-pl="Strona internetowa do akwizycji danych z modułu NI DAQ">Website for Data Acquisition from NI DAQ Module</p>
+        </div>
+
+        <!-- Schematic Toggle Button -->
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="toggle-btn" onclick="toggleSchematic()" style="padding: 12px 24px; font-size: 16px;">
+                <span id="toggleText" data-en="📐 Show Schematic" data-pl="📐 Pokaż schemat">📐 Show Schematic</span>
+            </button>
+        </div>
+
+        <!-- Circuit Schematic Section -->
+        <div class="schematic-section" id="schematicSection" style="display: none;">
+            <div class="schematic-toggle">
+                <button class="toggle-btn" onclick="toggleSchematicView()">
+                    <span id="toggleViewText" data-en="📋 Extended View" data-pl="📋 Widok rozszerzony">📋 Extended View</span>
+                </button>
+            </div>
+            <h2 data-en="📐 Circuit Schematic" data-pl="📐 Schemat układu">📐 Circuit Schematic</h2>
+            <div class="schematic-container" id="schematicContainer">
+                <img src="/static/schematic.png" alt="DAQ Circuit Schematic" id="schematicImage" class="schematic-img"
+                     onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'800\' height=\'400\'%3E%3Crect width=\'800\' height=\'400\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'400\' y=\'200\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'20\' fill=\'%23666\'%3ESchematic image not found%3C/text%3E%3Ctext x=\'400\' y=\'230\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'14\' fill=\'%23999\'%3EPlease save your schematic as static/schematic.png%3C/text%3E%3C/svg%3E';">
+                <div class="schematic-info">
+                    <strong data-en="ℹ️ System Components:" data-pl="ℹ️ Komponenty systemu:">ℹ️ System Components:</strong><br>
+                    <span data-en="• Power Supply: 230V AC / 5V+ DC" data-pl="• Zasilanie: 230V AC / 5V+ DC">• Power Supply: 230V AC / 5V+ DC</span><br>
+                    <span data-en="• Channels: CH1-CH4 (differential inputs)" data-pl="• Kanały: CH1-CH4 (wejścia różnicowe)">• Channels: CH1-CH4 (differential inputs)</span><br>
+                    <span data-en="• Relay Modules: ZS1, ZS2 (switching control)" data-pl="• Moduły przekaźnikowe: ZS1, ZS2 (sterowanie przełączaniem)">• Relay Modules: ZS1, ZS2 (switching control)</span><br>
+                    <span data-en="• Capacitors: Cs1-Cs4 with relay switching (ZK modules)" data-pl="• Kondensatory: Cs1-Cs4 z przełączaniem przekaźnikowym (moduły ZK)">• Capacitors: Cs1-Cs4 with relay switching (ZK modules)</span><br>
+                    <span data-en="• Current Measurement: ADC channels with shunt resistors" data-pl="• Pomiar prądu: kanały ADC z rezystorami bocznikowymi">• Current Measurement: ADC channels with shunt resistors</span><br>
+                    <span data-en="• Test Configuration: Multiple switching combinations for different measurement scenarios" data-pl="• Konfiguracja testowa: wiele kombinacji przełączania dla różnych scenariuszy pomiarowych">• Test Configuration: Multiple switching combinations for different measurement scenarios</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Circuit Type Selection -->
+        <div class="circuit-selection-section">
+            <h2 data-en="⚡ Select Circuit Type" data-pl="⚡ Wybierz typ obwodu">⚡ Select Circuit Type</h2>
+            <p class="selection-subtitle" data-en="Choose one of the circuit configurations below to proceed with your measurement" data-pl="Wybierz jedną z poniższych konfiguracji obwodu, aby kontynuować pomiar">Choose one of the circuit configurations below to proceed with your measurement</p>
+            
+            <div class="circuit-grid">
+                <!-- RL Circuit -->
+                <div class="circuit-card" id="circuit-rl" onclick="selectCircuit('rl')">
+                    <h3 data-en="RL Circuit" data-pl="Obwód RL">RL Circuit</h3>
+                    <div class="circuit-image-container">
+                        <img src="/static/circuit-rl.png" alt="RL Circuit Diagram" class="circuit-image"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'150\' y=\'100\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23999\'%3ERL Circuit Image%3C/text%3E%3Ctext x=\'150\' y=\'120\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'12\' fill=\'%23bbb\'%3EPlace your image at static/circuit-rl.png%3C/text%3E%3C/svg%3E';">
+                        <div class="circuit-info">
+                            <p class="circuit-description" data-en="Series RL Circuit" data-pl="Obwód szeregowy RL">Series RL Circuit</p>
+                            <p class="circuit-elements" data-en="Inductor (Ls) + Resistor (R1s/R2r)" data-pl="Cewka (Ls) + Rezystor (R1s/R2r)">Inductor (Ls) + Resistor (R1s/R2r)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RC Circuit -->
+                <div class="circuit-card" id="circuit-rc" onclick="selectCircuit('rc')">
+                    <h3 data-en="RC Circuit" data-pl="Obwód RC">RC Circuit</h3>
+                    <div class="circuit-image-container">
+                        <img src="/static/circuit-rc.png" alt="RC Circuit Diagram" class="circuit-image"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'150\' y=\'100\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23999\'%3ERC Circuit Image%3C/text%3E%3Ctext x=\'150\' y=\'120\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'12\' fill=\'%23bbb\'%3EPlace your image at static/circuit-rc.png%3C/text%3E%3C/svg%3E';">
+                        <div class="circuit-info">
+                            <p class="circuit-description" data-en="Series RC Circuit" data-pl="Obwód szeregowy RC">Series RC Circuit</p>
+                            <p class="circuit-elements" data-en="Capacitor (Cs) + Resistor (R1s/R2r)" data-pl="Kondensator (Cs) + Rezystor (R1s/R2r)">Capacitor (Cs) + Resistor (R1s/R2r)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RLC Circuit -->
+                <div class="circuit-card" id="circuit-rlc" onclick="selectCircuit('rlc')">
+                    <h3 data-en="RLC Circuit" data-pl="Obwód RLC">RLC Circuit</h3>
+                    <div class="circuit-image-container">
+                        <img src="/static/circuit-rlc.png" alt="RLC Circuit Diagram" class="circuit-image"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect width=\'300\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'150\' y=\'100\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23999\'%3ERLC Circuit Image%3C/text%3E%3Ctext x=\'150\' y=\'120\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'12\' fill=\'%23bbb\'%3EPlace your image at static/circuit-rlc.png%3C/text%3E%3C/svg%3E';">
+                        <div class="circuit-info">
+                            <p class="circuit-description" data-en="Series RLC Circuit" data-pl="Obwód szeregowy RLC">Series RLC Circuit</p>
+                            <p class="circuit-elements" data-en="Inductor (Ls) + Capacitor (Cs) + Resistor (R1s/R2r)" data-pl="Cewka (Ls) + Kondensator (Cs) + Rezystor (R1s/R2r)">Inductor (Ls) + Capacitor (Cs) + Resistor (R1s/R2r)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Parameter Selection (shown when circuit is selected) -->
+            <div class="parameter-section" id="parameterSection" style="display: none;">
+                <h3 data-en="⚙️ Component Parameters" data-pl="⚙️ Parametry komponentów">⚙️ Component Parameters</h3>
+                <p class="parameter-subtitle" data-en="Select parameter values for the circuit elements from the available options" data-pl="Wybierz wartości parametrów dla elementów obwodu z dostępnych opcji">Select parameter values for the circuit elements from the available options</p>
+                
+                <div class="parameter-grid" id="parameterGrid">
+                    <!-- Inductance Ls -->
+                    <div class="parameter-group" id="param-ls" style="display: none;">
+                        <label for="select-ls" data-en="Inductance (Ls):" data-pl="Indukcyjność (Ls):">Inductance (Ls):</label>
+                        <select id="select-ls" class="param-select">
+                            <option value="" data-en="Select inductance..." data-pl="Wybierz indukcyjność...">Select inductance...</option>
+                            <option value="ls1">1/0.5 [mH/Ω]</option>
+                            <option value="ls2">10/2.5 [mH/Ω]</option>
+                            <option value="ls3">75.6/50.1 [mH/Ω]</option>
+                            <option value="ls4">~0.6/1 [H/Ω]</option>
+                        </select>
+                        <div class="error-tooltip" id="error-ls" data-en="Please select an inductance value" data-pl="Proszę wybrać wartość indukcyjności">Please select an inductance value</div>
+                    </div>
+                    
+                    <!-- Capacitance Cs -->
+                    <div class="parameter-group" id="param-cs" style="display: none;">
+                        <label for="select-cs" data-en="Capacitance (Cs):" data-pl="Pojemność (Cs):">Capacitance (Cs):</label>
+                        <select id="select-cs" class="param-select">
+                            <option value="" data-en="Select capacitance..." data-pl="Wybierz pojemność...">Select capacitance...</option>
+                            <option value="cs1">48 [μF]</option>
+                            <option value="cs2">9.5 [μF]</option>
+                            <option value="cs3">1 [μF]</option>
+                            <option value="cs4">222 [nF]</option>
+                        </select>
+                        <div class="error-tooltip" id="error-cs" data-en="Please select a capacitance value" data-pl="Proszę wybrać wartość pojemności">Please select a capacitance value</div>
+                    </div>
+                    
+                    <!-- Resistance (R1s or R2r) -->
+                    <div class="parameter-group" id="param-resistance" style="display: none;">
+                        <label for="select-resistance" data-en="Resistance (R1s or R2r):" data-pl="Rezystancja (R1s lub R2r):">Resistance (R1s or R2r):</label>
+                        <select id="select-resistance" class="param-select">
+                            <option value="" data-en="Select resistance..." data-pl="Wybierz rezystancję...">Select resistance...</option>
+                            <optgroup label="R1s options">
+                                <option value="r1s1">4.9 [Ω]</option>
+                                <option value="r1s2">56.8 [Ω]</option>
+                                <option value="r1s3">739 [Ω]</option>
+                                <option value="r1s4">26.9 [kΩ]</option>
+                            </optgroup>
+                            <optgroup label="R2r options">
+                                <option value="r2r1">14.9 [Ω]</option>
+                                <option value="r2r2">32.9 [Ω]</option>
+                                <option value="r2r3">4.91 [kΩ]</option>
+                                <option value="r2r4">47.4 [kΩ]</option>
+                            </optgroup>
+                        </select>
+                        <div class="error-tooltip" id="error-resistance" data-en="Please select a resistance value" data-pl="Proszę wybrać wartość rezystancji">Please select a resistance value</div>
+                    </div>
+                    
+                    <!-- Discharge Resistor (Optional) -->
+                    <div class="parameter-group" id="param-discharge" style="display: none;">
+                        <label for="select-discharge" data-en="Discharge Resistor (Rz) - Optional:" data-pl="Rezystor rozładowania (Rz) - Opcjonalny:">Discharge Resistor (Rz) - Optional:</label>
+                        <select id="select-discharge" class="param-select">
+                            <option value="" data-en="Select discharge resistor..." data-pl="Wybierz rezystor rozładowania...">Select discharge resistor...</option>
+                            <option value="rz1">3 [Ω]</option>
+                            <option value="rz2">21.7 [Ω]</option>
+                            <option value="rz3">357 [Ω]</option>
+                            <option value="rz4">2.18 [kΩ]</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Measurement Control Section (shown when circuit is selected) -->
+            <div class="measurement-section" id="measurementSection" style="display: none;">
+                <h3 data-en="📊 Measurement Control" data-pl="📊 Sterowanie pomiarem">📊 Measurement Control</h3>
+                <p class="measurement-subtitle" data-en="Configure measurement parameters and start data acquisition" data-pl="Skonfiguruj parametry pomiaru i rozpocznij akwizycję danych">Configure measurement parameters and start data acquisition</p>
+                
+                <!-- Buffer Size Warning -->
+                <div class="buffer-warning" id="bufferWarning" style="display: none;">
+                    <span class="warning-icon">⚠️</span>
+                    <div class="warning-content">
+                        <strong data-en="Buffer Size Too Small!" data-pl="Rozmiar bufora za mały!">Buffer Size Too Small!</strong>
+                        <p>
+                            <span data-en="Your current buffer size (" data-pl="Twój obecny rozmiar bufora (">Your current buffer size (</span><span id="warningCurrentBuffer">0</span>
+                            <span data-en=" samples) is insufficient for the selected sample rate and measurement time." data-pl=" próbek) jest niewystarczający dla wybranej częstotliwości próbkowania i czasu pomiaru."> samples) is insufficient for the selected sample rate and measurement time.</span>
+                        </p>
+                        <p>
+                            <span data-en="The system will automatically use " data-pl="System automatycznie użyje ">The system will automatically use </span>
+                            <strong><span id="warningCalculatedBuffer">0</span>
+                            <span data-en=" samples" data-pl=" próbek"> samples</span></strong>
+                            <span data-en=" instead to prevent buffer overflow errors." data-pl=" zamiast tego, aby zapobiec błędom przepełnienia bufora."> instead to prevent buffer overflow errors.</span>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="measurement-inputs">
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label for="input-samples" data-en="Samples per Channel:" data-pl="Próbek na kanał:">Samples per Channel:</label>
+                            <input type="number" id="input-samples" class="measurement-input" 
+                                   value="500" min="100" max="500000" step="10">
+                            <div class="error-tooltip" id="error-samples" data-en="Value must be between 100 and 500,000" data-pl="Wartość musi być między 100 a 500 000">Value must be between 100 and 500,000</div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="input-sample-rate" data-en="Sample Rate (Hz):" data-pl="Częstotliwość próbkowania (Hz):">Sample Rate (Hz):</label>
+                            <input type="number" id="input-sample-rate" class="measurement-input" 
+                                   value="100" min="1" max="500000" step="1">
+                            <div class="error-tooltip" id="error-sample-rate" data-en="Value must be between 1 and 500,000 Hz" data-pl="Wartość musi być między 1 a 500 000 Hz">Value must be between 1 and 500,000 Hz</div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="input-measurement-time" data-en="Measurement Time (s):" data-pl="Czas pomiaru (s):">Measurement Time (s):</label>
+                            <input type="number" id="input-measurement-time" class="measurement-input" 
+                                   value="5" min="0.0001" max="20" step="0.0001" 
+                                   placeholder="Auto stop time">
+                            <div class="error-tooltip" id="error-measurement-time" data-en="Value must be between 0.0001 and 20 seconds" data-pl="Wartość musi być między 0.0001 a 20 sekund">Value must be between 0.0001 and 20 seconds</div>
+                        </div>
+                    </div>
+                    
+                    <div class="button-row">
+                        <button class="measurement-btn btn-start" id="btnStartMeasurement" onclick="startMeasurement()" 
+                                data-tooltip="Please select all required parameters">
+                            <span data-en="▶️ Start Measurement" data-pl="▶️ Rozpocznij pomiar">▶️ Start Measurement</span>
+                        </button>
+                        <button class="measurement-btn btn-stop" id="btnStopMeasurement" onclick="stopMeasurement()" 
+                                data-tooltip="No active measurement to stop" disabled>
+                            <span data-en="⏹️ Stop Measurement" data-pl="⏹️ Zatrzymaj pomiar">⏹️ Stop Measurement</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section (shown during/after measurement) -->
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <h2 data-en="📊 Measurement Results" data-pl="📊 Wyniki pomiaru">📊 Measurement Results</h2>
+            <p class="results-subtitle" data-en="Real-time data acquisition from selected channels" data-pl="Akwizycja danych w czasie rzeczywistym z wybranych kanałów">Real-time data acquisition from selected channels</p>
+            
+            <div class="results-controls">
+                <button class="result-btn btn-save" id="btnSaveJSON" onclick="saveResultsJSON()">
+                    <span data-en="💾 Save Results to JSON" data-pl="💾 Zapisz wyniki do JSON">💾 Save Results to JSON</span>
+                </button>
+                <button class="result-btn btn-save-csv" id="btnSaveCSV" onclick="saveResultsCSV()">
+                    <span data-en="📄 Save Results to CSV" data-pl="📄 Zapisz wyniki do CSV">📄 Save Results to CSV</span>
+                </button>
+                <button class="result-btn btn-clear" id="btnClearResults" onclick="clearResults()">
+                    <span data-en="🗑️ Clear Results" data-pl="🗑️ Wyczyść wyniki">🗑️ Clear Results</span>
+                </button>
+            </div>
+            
+            <div class="charts-grid" id="chartsGrid">
+                <!-- Charts will be dynamically inserted here based on circuit type -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <img src="/static/logopg.svg" alt="Gdańsk University of Technology Logo" class="pg-logo">
+            </div>
+            
+            <div class="footer-info">
+                <div class="footer-section">
+                    <h4 data-en="NI DAQ Control Dashboard" data-pl="Panel Sterowania NI DAQ">NI DAQ Control Dashboard</h4>
+                    <p data-en="Website for Data Acquisition from NI DAQ Module" data-pl="Strona internetowa do akwizycji danych z modułu NI DAQ">Website for Data Acquisition from NI DAQ Module</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4 data-en="Author" data-pl="Autor">Author</h4>
+                    <p><strong>Illia Shcheboruk</strong></p>
+                    <p data-en="Gdańsk University of Technology" data-pl="Politechnika Gdańska">Gdańsk University of Technology</p>
+                    <p data-en="Faculty of Electrical and Control Engineering" data-pl="Wydział Elektrotechniki i Automatyki">Faculty of Electrical and Control Engineering</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4 data-en="Project Information" data-pl="Informacje o projekcie">Project Information</h4>
+                    <p><span data-en="Release Date: " data-pl="Data wydania: ">Release Date: </span><strong>December 2024</strong></p>
+                    <p><span data-en="Version: " data-pl="Wersja: ">Version: </span>v1.0.0</p>
+                    <p data-en="Engineering Thesis Project" data-pl="Projekt pracy inżynierskiej">Engineering Thesis Project</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2024-2025 Illia Shcheboruk. <span data-en="All rights reserved." data-pl="Wszelkie prawa zastrzeżone.">All rights reserved.</span></p>
+            <p data-en="Developed as part of Bachelor's Engineering Thesis" data-pl="Opracowane w ramach pracy inżynierskiej">Developed as part of Bachelor's Engineering Thesis</p>
+        </div>
+    </footer>
+    
+    <!-- External JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Dashboard JavaScript -->
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
