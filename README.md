@@ -1,4 +1,4 @@
-# Website for Data Acquisition from the NI DAQ Module
+![Untitled](https://github.com/user-attachments/assets/03a7b432-646c-43a6-8a08-057a4ffb97ad)# Website for Data Acquisition from the NI DAQ Module
 
 ## 🇬🇧 English
 
@@ -22,8 +22,10 @@ A web-based control dashboard for data acquisition from National Instruments DAQ
 
 ### Installation
 
-#### 1. Install NI-DAQmx Driver
-Download and install NI-DAQmx driver from the [National Instruments website](https://www.ni.com/en/support/downloads/drivers/download.ni-daqmx.html) or install NI MAX (Measurement & Automation Explorer).
+#### 1. Install and configure NI-DAQmx Driver
+Download and install NI-DAQmx driver from the [National Instruments website](https://www.ni.com/en/support/downloads/drivers/download.ni-daqmx.html) or install NI MAX (Measurement & Automation Explorer). Next step is to configure your driver to contain your NI device. This project was designed for a configuration as shown on this picture:
+![Untitled](https://github.com/user-attachments/assets/48e95e2b-f34f-49bb-9c95-863710966d34)
+
 
 #### 2. Clone the Repository
 ```bash
@@ -76,8 +78,10 @@ Webowa aplikacja do akwizycji danych z modułów DAQ firmy National Instruments.
 
 ### Instalacja
 
-#### 1. Instalacja sterownika NI-DAQmx
-Pobierz i zainstaluj sterownik NI-DAQmx ze [strony National Instruments](https://www.ni.com/en/support/downloads/drivers/download.ni-daqmx.html) lub zainstaluj NI MAX (Measurement & Automation Explorer).
+#### 1. Instalacja i konfiguracja sterownika NI-DAQmx
+Pobierz i zainstaluj sterownik NI-DAQmx ze [strony National Instruments](https://www.ni.com/en/support/downloads/drivers/download.ni-daqmx.html) lub zainstaluj NI MAX (Measurement & Automation Explorer). Kolejnym krokiem odpowiednio skonfiguruj (dodaj) swoje urządzenie NI. Dane rozwiązanie było stworzone dla systemu NI o takiej konfiguracji:
+![Untitled](https://github.com/user-attachments/assets/8710c412-531f-4c48-aec7-c91dc20e37bc)
+
 
 #### 2. Sklonuj repozytorium
 ```bash
