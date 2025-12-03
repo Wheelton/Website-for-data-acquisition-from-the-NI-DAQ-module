@@ -3,6 +3,144 @@
  * Handles circuit selection and schematic toggle
  */
 
+// ============== Language Management ==============
+
+let currentLanguage = 'pl'; // Default language
+
+/**
+ * Switch between English and Polish languages
+ * @param {string} lang - Language code ('en' or 'pl')
+ */
+function switchLanguage(lang) {
+    currentLanguage = lang;
+    
+    // Update HTML lang attribute
+    document.getElementById('html-root').setAttribute('lang', lang);
+    
+    // Update button states
+    document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+    document.getElementById('lang-pl').classList.toggle('active', lang === 'pl');
+    
+    // Update page title
+    const title = document.querySelector('title');
+    if (title) {
+        const titleText = title.getAttribute(`data-${lang}`);
+        if (titleText) title.textContent = titleText;
+    }
+    
+    // Update all elements with language attributes
+    document.querySelectorAll('[data-en][data-pl]').forEach(element => {
+        const text = element.getAttribute(`data-${lang}`);
+        if (text) {
+            // For input placeholders
+            if (element.tagName === 'INPUT' && element.hasAttribute('placeholder')) {
+                element.placeholder = text;
+            } else {
+                element.textContent = text;
+            }
+        }
+    });
+    
+    // Update option elements in select dropdowns
+    updateSelectOptions(lang);
+    
+    // Update chart labels if charts exist
+    updateChartLabels(lang);
+    
+    // Save language preference to localStorage
+    localStorage.setItem('preferred_language', lang);
+    
+    console.log(`Language switched to: ${lang === 'en' ? 'English' : 'Polish'}`);
+}
+
+/**
+ * Update select dropdown options
+ * @param {string} lang - Language code
+ */
+function updateSelectOptions(lang) {
+    // Update all option elements with language attributes
+    document.querySelectorAll('option[data-en][data-pl]').forEach(option => {
+        const text = option.getAttribute(`data-${lang}`);
+        if (text) {
+            option.textContent = text;
+        }
+    });
+    
+    // Update optgroup labels
+    const optgroups = document.querySelectorAll('optgroup');
+    optgroups.forEach(optgroup => {
+        const label = optgroup.getAttribute('label');
+        if (label === 'R1s options') {
+            optgroup.label = lang === 'en' ? 'R1s options' : 'Opcje R1s';
+        } else if (label === 'R2r options') {
+            optgroup.label = lang === 'en' ? 'R2r options' : 'Opcje R2r';
+        }
+    });
+}
+
+/**
+ * Update chart labels when language changes
+ * @param {string} lang - Language code
+ */
+function updateChartLabels(lang) {
+    // Update chart titles
+    document.querySelectorAll('.chart-title-lang').forEach(title => {
+        const enText = title.getAttribute('data-channel-name-en');
+        const plText = title.getAttribute('data-channel-name-pl');
+        if (enText && plText) {
+            title.textContent = lang === 'en' ? enText : plText;
+        }
+    });
+    
+    if (Object.keys(charts).length === 0) return;
+    
+    // Translation mappings for chart labels
+    const translations = {
+        'en': {
+            time: 'Time (s)',
+            voltage: 'Voltage (V)',
+            sample: 'Sample Index'
+        },
+        'pl': {
+            time: 'Czas (s)',
+            voltage: 'Napięcie (V)',
+            sample: 'Indeks próbki'
+        }
+    };
+    
+    // Update each chart
+    Object.keys(charts).forEach(chartId => {
+        const chart = charts[chartId];
+        if (chart && chart.options) {
+            // Update x-axis label
+            if (chart.options.scales && chart.options.scales.x) {
+                chart.options.scales.x.title.text = translations[lang].sample;
+            }
+            // Update y-axis label
+            if (chart.options.scales && chart.options.scales.y) {
+                chart.options.scales.y.title.text = translations[lang].voltage;
+            }
+            chart.update();
+        }
+    });
+}
+
+/**
+ * Initialize language on page load
+ */
+function initializeLanguage() {
+    // Check for saved language preference
+    const savedLang = localStorage.getItem('preferred_language');
+    if (savedLang && (savedLang === 'en' || savedLang === 'pl')) {
+        switchLanguage(savedLang);
+    }
+}
+
+// Initialize language when DOM is loaded
+document.addEventListener('DOMContentLoaded', initializeLanguage);
+
+// ============== Circuit Selection ==============
+
 let selectedCircuit = null;
 let isExtendedView = false;
 let isMeasuring = false;
@@ -20,20 +158,60 @@ let measurementValues = {
 // Channel mappings for each circuit type
 const channelMappings = {
     'rl': [
-        { id: 'ch1', name: 'CH1 - Voltage across Inductor (Ls)', color: '#3b82f6' },
-        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R1s)', color: '#ef4444' },
-        { id: 'ch4', name: 'CH4 - Voltage across Resistor (R1r)', color: '#10b981' }
+        { 
+            id: 'ch1', 
+            name: { en: 'CH1 - Voltage across Inductor (Ls)', pl: 'CH1 - Napięcie na cewce (Ls)' },
+            color: '#3b82f6' 
+        },
+        { 
+            id: 'ch2', 
+            name: { en: 'CH2 - Voltage across Resistor (R1s)', pl: 'CH2 - Napięcie na rezystorze (R1s)' },
+            color: '#ef4444' 
+        },
+        { 
+            id: 'ch4', 
+            name: { en: 'CH4 - Voltage across Resistor (R1r)', pl: 'CH4 - Napięcie na rezystorze (R1r)' },
+            color: '#10b981' 
+        }
     ],
     'rc': [
-        { id: 'ch3', name: 'CH3 - Voltage across Capacitor (Cs)', color: '#f59e0b' },
-        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R1s)', color: '#ef4444' },
-        { id: 'ch4', name: 'CH4 - Voltage across Resistor (R1r)', color: '#10b981' }
+        { 
+            id: 'ch3', 
+            name: { en: 'CH3 - Voltage across Capacitor (Cs)', pl: 'CH3 - Napięcie na kondensatorze (Cs)' },
+            color: '#f59e0b' 
+        },
+        { 
+            id: 'ch2', 
+            name: { en: 'CH2 - Voltage across Resistor (R1s)', pl: 'CH2 - Napięcie na rezystorze (R1s)' },
+            color: '#ef4444' 
+        },
+        { 
+            id: 'ch4', 
+            name: { en: 'CH4 - Voltage across Resistor (R1r)', pl: 'CH4 - Napięcie na rezystorze (R1r)' },
+            color: '#10b981' 
+        }
     ],
     'rlc': [
-        { id: 'ch1', name: 'CH1 - Voltage across Inductor (Ls)', color: '#3b82f6' },
-        { id: 'ch3', name: 'CH3 - Voltage across Capacitor (Cs)', color: '#f59e0b' },
-        { id: 'ch2', name: 'CH2 - Voltage across Resistor (R1s)', color: '#ef4444' },
-        { id: 'ch4', name: 'CH4 - Voltage across Resistor (R1r)', color: '#10b981' }
+        { 
+            id: 'ch1', 
+            name: { en: 'CH1 - Voltage across Inductor (Ls)', pl: 'CH1 - Napięcie na cewce (Ls)' },
+            color: '#3b82f6' 
+        },
+        { 
+            id: 'ch3', 
+            name: { en: 'CH3 - Voltage across Capacitor (Cs)', pl: 'CH3 - Napięcie na kondensatorze (Cs)' },
+            color: '#f59e0b' 
+        },
+        { 
+            id: 'ch2', 
+            name: { en: 'CH2 - Voltage across Resistor (R1s)', pl: 'CH2 - Napięcie na rezystorze (R1s)' },
+            color: '#ef4444' 
+        },
+        { 
+            id: 'ch4', 
+            name: { en: 'CH4 - Voltage across Resistor (R1r)', pl: 'CH4 - Napięcie na rezystorze (R1r)' },
+            color: '#10b981' 
+        }
     ]
 };
 
@@ -428,10 +606,14 @@ function toggleSchematic() {
     
     if (section.style.display === 'none') {
         section.style.display = 'block';
-        toggleText.textContent = '📐 Hide Schematic';
+        toggleText.textContent = currentLanguage === 'en' ? '📐 Hide Schematic' : '📐 Ukryj schemat';
+        toggleText.setAttribute('data-en', '📐 Hide Schematic');
+        toggleText.setAttribute('data-pl', '📐 Ukryj schemat');
     } else {
         section.style.display = 'none';
-        toggleText.textContent = '📐 Show Schematic';
+        toggleText.textContent = currentLanguage === 'en' ? '📐 Show Schematic' : '📐 Pokaż schemat';
+        toggleText.setAttribute('data-en', '📐 Show Schematic');
+        toggleText.setAttribute('data-pl', '📐 Pokaż schemat');
     }
 }
 
@@ -454,7 +636,9 @@ function toggleSchematicView() {
                 this.onerror = null;
                 this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400'%3E%3Crect width='800' height='400' fill='%23f0f0f0'/%3E%3Ctext x='400' y='200' text-anchor='middle' font-family='Arial' font-size='20' fill='%23666'%3ESchematic image not found%3C/text%3E%3Ctext x='400' y='230' text-anchor='middle' font-family='Arial' font-size='14' fill='%23999'%3EPlease save your schematic as static/schematic.png%3C/text%3E%3C/svg%3E";
             };
-            toggleViewText.textContent = '📋 Extended View';
+            toggleViewText.textContent = currentLanguage === 'en' ? '📋 Extended View' : '📋 Widok rozszerzony';
+            toggleViewText.setAttribute('data-en', '📋 Extended View');
+            toggleViewText.setAttribute('data-pl', '📋 Widok rozszerzony');
             isExtendedView = false;
         } else {
             // Switch to extended view
@@ -463,7 +647,9 @@ function toggleSchematicView() {
                 this.onerror = null;
                 this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400'%3E%3Crect width='800' height='400' fill='%23f0f0f0'/%3E%3Ctext x='400' y='200' text-anchor='middle' font-family='Arial' font-size='20' fill='%23666'%3EExtended schematic not found%3C/text%3E%3Ctext x='400' y='230' text-anchor='middle' font-family='Arial' font-size='14' fill='%23999'%3EPlease save your extended schematic as static/schematicExtended.png%3C/text%3E%3C/svg%3E";
             };
-            toggleViewText.textContent = '📄 Standard View';
+            toggleViewText.textContent = currentLanguage === 'en' ? '📄 Standard View' : '📄 Widok standardowy';
+            toggleViewText.setAttribute('data-en', '📄 Standard View');
+            toggleViewText.setAttribute('data-pl', '📄 Widok standardowy');
             isExtendedView = true;
         }
         
@@ -1133,7 +1319,10 @@ function initializeCharts() {
         
         // Create chart title
         const chartTitle = document.createElement('h3');
-        chartTitle.textContent = channel.name;
+        chartTitle.textContent = channel.name[currentLanguage];
+        chartTitle.setAttribute('data-channel-name-en', channel.name.en);
+        chartTitle.setAttribute('data-channel-name-pl', channel.name.pl);
+        chartTitle.classList.add('chart-title-lang');
         
         // Create chart container
         const chartContainer = document.createElement('div');
