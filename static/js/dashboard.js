@@ -755,42 +755,42 @@ function saveMeasurementValues() {
 const componentRelayMappings = {
     // Inductor (Ls) mappings - UPDATE THESE WITH CORRECT RELAY NAMES
     inductors: {
-        'ls1': 'zk1_1',  // 1/0.5 [mH/Ω]
-        'ls2': 'zk1_2',  // 10/2.5 [mH/Ω]
-        'ls3': 'zk1_3',  // 75.6/50.1 [mH/Ω]
-        'ls4': 'zk1_4'   // ~0.6/1 [H/Ω]
+        'ls1': 'zk1_1',  // 1/0,5 [mH/Ω]
+        'ls2': 'zk1_2',  // 10/2,5 [mH/Ω]
+        'ls3': 'zk1_3',  // 75,6/50,1 [mH/Ω]
+        'ls4': 'zk1_4'   // ~0,6/1 [H/Ω]
     },
     
     // Capacitor (Cs) mappings - VERIFIED FROM BACKEND
     capacitors: {
         'cs1': 'zk2_1',  // 48 μF
-        'cs2': 'zk2_2',  // 9.5 μF
+        'cs2': 'zk2_2',  // 9,5 μF
         'cs3': 'zk2_3',  // 1 μF
         'cs4': 'zk2_4'   // 222 nF
     },
     
     // Resistor (R1s) mappings - UPDATE THESE WITH CORRECT RELAY NAMES
     resistorsR1s: {
-        'r1s1': 'zk1_5',  // 4.9 Ω
-        'r1s2': 'zk1_6',  // 56.8 Ω
+        'r1s1': 'zk1_5',  // 4,9 Ω
+        'r1s2': 'zk1_6',  // 56,8 Ω
         'r1s3': 'zk1_7',  // 739 Ω
-        'r1s4': 'zk1_8'   // 26.9 kΩ
+        'r1s4': 'zk1_8'   // 26,9 kΩ
     },
     
     // Resistor (R2r) mappings - UPDATE THESE WITH CORRECT RELAY NAMES
     resistorsR2r: {
-        'r2r1': 'zk4_1',  // 14.9 Ω
-        'r2r2': 'zk4_2',  // 32.9 Ω
-        'r2r3': 'zk4_3',  // 4.91 kΩ
-        'r2r4': 'zk4_4'   // 47.4 kΩ
+        'r2r1': 'zk4_1',  // 14,9 Ω
+        'r2r2': 'zk4_2',  // 32,9 Ω
+        'r2r3': 'zk4_3',  // 4,91 kΩ
+        'r2r4': 'zk4_4'   // 47,4 kΩ
     },
     
     // Discharge resistor mappings - VERIFIED FROM BACKEND
     dischargeResistors: {
         'rz1': 'zk2_5',  // 3 Ω (R2s1)
-        'rz2': 'zk2_6',  // 21.7 Ω (R2s2) - DEFAULT
+        'rz2': 'zk2_6',  // 21,7 Ω (R2s2) - DEFAULT
         'rz3': 'zk2_7',  // 357 Ω (R2s3)
-        'rz4': 'zk2_8'   // 2.18 kΩ (R2s4)
+        'rz4': 'zk2_8'   // 2,18 kΩ (R2s4)
     },
     
     // Circuit-specific additional relays
