@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     
     # API Configuration
     app_name: str = "NI DAQ Web Service"
-    app_version: str = "1.0.0"
+    app_version: str = "1.0.1"
     app_description: str = "Web service for data acquisition from NI DAQ module"
     
     # Server Configuration

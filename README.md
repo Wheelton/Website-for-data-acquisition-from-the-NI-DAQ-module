@@ -114,7 +114,7 @@ Aplikacja zostanie uruchomiona pod adresem `http://localhost:8000`
 **Institution / Instytucja:** Gdańsk University of Technology / Politechnika Gdańska  
 **Faculty / Wydział:** Faculty of Electrical and Control Engineering / Wydział Elektrotechniki i Automatyki  
 **Project Type / Typ projektu:** Bachelor's Engineering Thesis / Praca Inżynierska  
-**Version / Wersja:** 1.0.0  
+**Version / Wersja:** 1.0.1 
 **Year / Rok:** 2024-2025
 
 ---
